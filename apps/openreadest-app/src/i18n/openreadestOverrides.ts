@@ -11,70 +11,8 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     License: 'License',
     'Project Links': 'Project Links',
     'GitHub Homepage': 'GitHub Homepage',
-    赞助一下: 'Support OpenReadest',
-    '为我发"声"': 'Support OpenReadest',
     检查更新: 'Check for Updates',
-    'OpenReadest Support': 'OpenReadest Support',
     'OpenReadest Update': 'OpenReadest Update',
-    请作者吃个鸡腿儿: 'Buy the maintainer a drumstick',
-    请作者吃顿拼好饭: 'Buy the maintainer a budget combo meal',
-    'OpenReadest 是 Readest 的独立分支，继续维护 EPUB、PDF、TXT 等阅读能力，并补强 WebDAV 同步与本地优先体验。':
-      'OpenReadest is an independent Readest fork focused on EPUB, PDF, TXT reading, stronger WebDAV sync, and a local-first library experience.',
-    '如果这些改动帮你把书库稳定用起来了，可以扫下面这张码支持一下开发、测试设备和持续更新。':
-      'If these improvements made your library stable enough to use daily, you can support development, device testing, and ongoing updates by scanning the code below.',
-    长按保存赞助码: 'Long press to save the support code',
-    '保存后可在支付宝扫一扫里从相册识别，也可以直接点击下方按钮。':
-      'After saving, open Alipay scanner and choose it from your photo album, or use the button below.',
-    长按试试: 'Long press',
-    '赞助码已保存，请打开支付宝扫一扫并从相册选择它。':
-      'Support code saved. Open Alipay scanner and choose it from your photo album.',
-    '已取消保存。': 'Save cancelled.',
-    '保存赞助码失败，请稍后重试。': 'Failed to save the support code. Please try again later.',
-    '当前环境不支持直接唤起支付宝，请先保存图片后手动扫码。':
-      'This environment cannot open Alipay directly. Please save the image first and scan it manually.',
-    '如果支付宝没有自动进入扫一扫，请在支付宝里手动打开扫一扫。':
-      'If Alipay did not open the scanner automatically, please open the scanner manually inside Alipay.',
-    '未能直接唤起支付宝，请先保存图片后在支付宝扫一扫中从相册识别。':
-      'Could not open Alipay directly. Please save the image first and scan it from your photo album inside Alipay.',
-    感谢您的鸡腿儿: 'Thanks for the drumstick',
-    下次一定: 'Maybe next time',
-    '长按海报即可保存赞助码。': 'Long press the poster to save the support code.',
-    '保存中...': 'Saving...',
-    赞助码准备中: 'Support code is being prepared',
-    收款码已就绪: 'Support code is ready',
-    '当前页面先使用 OpenReadest logo 占位，后续会切换为可远程替换的赞助二维码。':
-      'This page is temporarily using the OpenReadest logo as a placeholder. It will later switch to a remotely replaceable support QR code.',
-    'Android 端可以继续长按图片保存；桌面端会显示显式按钮，避免把长按当成主要操作。':
-      'Android can keep using long press to save the code. Desktop now shows explicit buttons instead of relying on a long press gesture.',
-    'Windows 和桌面端改为“保存图片 / 打开大图 / 复制链接”操作，不再依赖长按。':
-      'Windows and desktop now use explicit save, open, and copy-link actions instead of relying on long press.',
-    敬请期待: 'Coming soon',
-    可测试: 'Ready for testing',
-    关注项目进展: 'Follow project updates',
-    我来助你: 'I want to help',
-    '收款码链接已复制。': 'Support code link copied.',
-    '复制收款码链接失败。': 'Failed to copy the support code link.',
-    '收款码已开始保存，请到下载目录查看。':
-      'Saving the support code has started. Check your Downloads folder.',
-    '赞助码已保存到系统相册。': 'Support code saved to your system photo album.',
-    '系统相册保存需要存储权限。': 'Saving to the system photo album requires storage permission.',
-    '保存到系统相册失败，请稍后重试。':
-      'Failed to save to the system photo album. Please try again later.',
-    '长按约两秒即可自动保存到系统相册。':
-      'Long press for about two seconds to save it to your system photo album automatically.',
-    '赞助海报暂未找到，请稍后重试。':
-      'The support poster is not available yet. Please try again later.',
-    '请直接截图二维码，然后打开支付宝扫一扫从相册识别。':
-      'Please take a screenshot of the QR code, then open Alipay scanner and recognize it from your photo album.',
-    '请直接截图二维码。': 'Please take a screenshot of the QR code.',
-    打开支付宝扫一扫: 'Open Alipay scanner',
-    再从相册里识别: 'Then recognize it from your photo album',
-    '然后打开支付宝扫一扫，从相册识别。':
-      'Then open Alipay scanner and recognize it from your photo album.',
-    保存收款码: 'Save support code',
-    打开大图: 'Open full image',
-    复制收款码链接: 'Copy support code link',
-    查看发布页: 'View release page',
     '当前版本 {{version}}': 'Current version {{version}}',
     '推荐分发通道：{{channel}}': 'Recommended distribution channel: {{channel}}',
     'OpenReadest 的独立更新源正在接入中。当前阶段先保留独立“检查更新”页面，后续会接上远程版本信息、更新日志和下载分发。':
@@ -149,67 +87,8 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     Integrations: '集成',
     'Cloud Sync': '云同步',
     'Not configured': '未配置',
-    赞助一下: '为我发"声"',
-    '为我发"声"': '为我发"声"',
     检查更新: '检查更新',
-    'OpenReadest Support': 'OpenReadest Support',
     'OpenReadest Update': 'OpenReadest Update',
-    请作者吃个鸡腿儿: '请作者吃个鸡腿儿',
-    请作者吃顿拼好饭: '请作者吃顿拼好饭',
-    'OpenReadest 是 Readest 的独立分支，继续维护 EPUB、PDF、TXT 等阅读能力，并补强 WebDAV 同步与本地优先体验。':
-      'OpenReadest 是 Readest 的独立分支，继续维护 EPUB、PDF、TXT 等阅读能力，并补强 WebDAV 同步与本地优先体验。',
-    '如果这些改动帮你把书库稳定用起来了，可以扫下面这张码支持一下开发、测试设备和持续更新。':
-      '如果这些改动帮你把书库稳定用起来了，可以扫下面这张码支持一下开发、测试设备和持续更新。',
-    长按保存赞助码: '长按保存赞助码',
-    '保存后可在支付宝扫一扫里从相册识别，也可以直接点击下方按钮。':
-      '保存后可在支付宝扫一扫里从相册识别，也可以直接点击下方按钮。',
-    长按试试: '长按试试',
-    '赞助码已保存，请打开支付宝扫一扫并从相册选择它。':
-      '赞助码已保存，请打开支付宝扫一扫并从相册选择它。',
-    '已取消保存。': '已取消保存。',
-    '保存赞助码失败，请稍后重试。': '保存赞助码失败，请稍后重试。',
-    '当前环境不支持直接唤起支付宝，请先保存图片后手动扫码。':
-      '当前环境不支持直接唤起支付宝，请先保存图片后手动扫码。',
-    '如果支付宝没有自动进入扫一扫，请在支付宝里手动打开扫一扫。':
-      '如果支付宝没有自动进入扫一扫，请在支付宝里手动打开扫一扫。',
-    '未能直接唤起支付宝，请先保存图片后在支付宝扫一扫中从相册识别。':
-      '未能直接唤起支付宝，请先保存图片后在支付宝扫一扫中从相册识别。',
-    感谢您的鸡腿儿: '感谢您的鸡腿儿',
-    下次一定: '下次一定',
-    '长按海报即可保存赞助码。': '长按海报即可保存赞助码。',
-    '保存中...': '保存中...',
-    赞助码准备中: '赞助码准备中',
-    收款码已就绪: '收款码已就绪',
-    '当前页面先使用 OpenReadest logo 占位，后续会切换为可远程替换的赞助二维码。':
-      '当前页面先使用 OpenReadest logo 占位，后续会切换为可远程替换的赞助二维码。',
-    'Android 端可以继续长按图片保存；桌面端会显示显式按钮，避免把长按当成主要操作。':
-      'Android 端可以继续长按图片保存；桌面端会显示显式按钮，避免把长按当成主要操作。',
-    'Windows 和桌面端改为“保存图片 / 打开大图 / 复制链接”操作，不再依赖长按。':
-      'Windows 和桌面端改为“保存图片 / 打开大图 / 复制链接”操作，不再依赖长按。',
-    敬请期待: '敬请期待',
-    可测试: '可测试',
-    关注项目进展: '关注项目进展',
-    我来助你: '我来助你',
-    '收款码链接已复制。': '收款码链接已复制。',
-    '复制收款码链接失败。': '复制收款码链接失败。',
-    '收款码已开始保存，请到下载目录查看。': '收款码已开始保存，请到下载目录查看。',
-    '赞助码已保存到系统相册。': '赞助码已保存到系统相册。',
-    '系统相册保存需要存储权限。': '系统相册保存需要存储权限。',
-    '保存到系统相册失败，请稍后重试。': '保存到系统相册失败，请稍后重试。',
-    '长按约两秒即可自动保存到系统相册。': '长按约两秒即可自动保存到系统相册。',
-    '赞助海报暂未找到，请稍后重试。': '赞助海报暂未找到，请稍后重试。',
-    '请直接截图二维码，然后打开支付宝扫一扫从相册识别。':
-      '请直接截图二维码，然后打开支付宝扫一扫从相册识别。',
-    '请直接截图二维码。': '请直接截图二维码。',
-    打开支付宝扫一扫: '打开支付宝扫一扫',
-    再从相册里识别: '再从相册里识别',
-    '然后打开支付宝扫一扫，从相册识别。': '然后打开支付宝扫一扫，从相册识别。',
-    保存收款码: '保存收款码',
-    打开大图: '打开大图',
-    复制收款码链接: '复制收款码链接',
-    查看发布页: '查看发布页',
-    '当前版本 {{version}}': '当前版本 {{version}}',
-    '推荐分发通道：{{channel}}': '推荐分发通道：{{channel}}',
     'OpenReadest 的独立更新源正在接入中。当前阶段先保留独立“检查更新”页面，后续会接上远程版本信息、更新日志和下载分发。':
       'OpenReadest 的独立更新源正在接入中。当前阶段先保留独立“检查更新”页面，后续会接上远程版本信息、更新日志和下载分发。',
     '现在你可以先通过项目主页查看最新进展；Android 包会继续按 ARM64 优先提供。':
@@ -281,67 +160,8 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     Integrations: '整合',
     'Cloud Sync': '雲端同步',
     'Not configured': '尚未設定',
-    赞助一下: '為我發"聲"',
-    '为我发"声"': '為我發"聲"',
     检查更新: '檢查更新',
-    'OpenReadest Support': 'OpenReadest Support',
     'OpenReadest Update': 'OpenReadest Update',
-    请作者吃个鸡腿儿: '請作者吃個雞腿兒',
-    请作者吃顿拼好饭: '請作者吃頓拼好飯',
-    'OpenReadest 是 Readest 的独立分支，继续维护 EPUB、PDF、TXT 等阅读能力，并补强 WebDAV 同步与本地优先体验。':
-      'OpenReadest 是 Readest 的獨立分支，持續維護 EPUB、PDF、TXT 等閱讀能力，並補強 WebDAV 同步與本地優先體驗。',
-    '如果这些改动帮你把书库稳定用起来了，可以扫下面这张码支持一下开发、测试设备和持续更新。':
-      '如果這些改動讓你的書庫穩定可用了，可以掃下面這張碼支持開發、測試設備與後續更新。',
-    长按保存赞助码: '長按保存贊助碼',
-    '保存后可在支付宝扫一扫里从相册识别，也可以直接点击下方按钮。':
-      '保存後可在支付寶掃一掃中從相簿識別，也可以直接點擊下方按鈕。',
-    长按试试: '長按試試',
-    '赞助码已保存，请打开支付宝扫一扫并从相册选择它。':
-      '贊助碼已保存，請打開支付寶掃一掃並從相簿選擇它。',
-    '已取消保存。': '已取消保存。',
-    '保存赞助码失败，请稍后重试。': '保存贊助碼失敗，請稍後再試。',
-    '当前环境不支持直接唤起支付宝，请先保存图片后手动扫码。':
-      '目前環境不支援直接喚起支付寶，請先保存圖片後手動掃碼。',
-    '如果支付宝没有自动进入扫一扫，请在支付宝里手动打开扫一扫。':
-      '如果支付寶沒有自動進入掃一掃，請在支付寶內手動打開掃一掃。',
-    '未能直接唤起支付宝，请先保存图片后在支付宝扫一扫中从相册识别。':
-      '未能直接喚起支付寶，請先保存圖片後在支付寶掃一掃中從相簿識別。',
-    感谢您的鸡腿儿: '感謝您的雞腿兒',
-    下次一定: '下次一定',
-    '长按海报即可保存赞助码。': '長按海報即可保存贊助碼。',
-    '保存中...': '保存中...',
-    赞助码准备中: '贊助碼準備中',
-    收款码已就绪: '收款碼已就緒',
-    '当前页面先使用 OpenReadest logo 占位，后续会切换为可远程替换的赞助二维码。':
-      '目前頁面先使用 OpenReadest logo 作為佔位，後續會切換為可遠端替換的贊助 QR 碼。',
-    'Android 端可以继续长按图片保存；桌面端会显示显式按钮，避免把长按当成主要操作。':
-      'Android 端可以繼續長按圖片保存；桌面端會顯示明確按鈕，避免把長按當成主要操作。',
-    'Windows 和桌面端改为“保存图片 / 打开大图 / 复制链接”操作，不再依赖长按。':
-      'Windows 與桌面端改為「保存圖片 / 打開大圖 / 複製連結」操作，不再依賴長按。',
-    敬请期待: '敬請期待',
-    可测试: '可測試',
-    关注项目进展: '關注專案進展',
-    我来助你: '我來助你',
-    '收款码链接已复制。': '收款碼連結已複製。',
-    '复制收款码链接失败。': '複製收款碼連結失敗。',
-    '收款码已开始保存，请到下载目录查看。': '收款碼已開始保存，請到下載目錄查看。',
-    '赞助码已保存到系统相册。': '贊助碼已保存到系統相簿。',
-    '系统相册保存需要存储权限。': '保存到系統相簿需要儲存權限。',
-    '保存到系统相册失败，请稍后重试。': '保存到系統相簿失敗，請稍後再試。',
-    '长按约两秒即可自动保存到系统相册。': '長按約兩秒即可自動保存到系統相簿。',
-    '赞助海报暂未找到，请稍后重试。': '贊助海報暫未找到，請稍後再試。',
-    '请直接截图二维码，然后打开支付宝扫一扫从相册识别。':
-      '請直接截圖二維碼，然後打開支付寶掃一掃從相簿識別。',
-    '请直接截图二维码。': '請直接截圖二維碼。',
-    打开支付宝扫一扫: '打開支付寶掃一掃',
-    再从相册里识别: '再從相簿裡識別',
-    '然后打开支付宝扫一扫，从相册识别。': '然後打開支付寶掃一掃，從相簿識別。',
-    保存收款码: '保存收款碼',
-    打开大图: '打開大圖',
-    复制收款码链接: '複製收款碼連結',
-    查看发布页: '查看發佈頁',
-    '当前版本 {{version}}': '目前版本 {{version}}',
-    '推荐分发通道：{{channel}}': '推薦分發通道：{{channel}}',
     'OpenReadest 的独立更新源正在接入中。当前阶段先保留独立“检查更新”页面，后续会接上远程版本信息、更新日志和下载分发。':
       'OpenReadest 的獨立更新來源正在接入中。現階段先保留獨立「檢查更新」頁面，後續會接上遠端版本資訊、更新日誌與下載分發。',
     '现在你可以先通过项目主页查看最新进展；Android 包会继续按 ARM64 优先提供。':

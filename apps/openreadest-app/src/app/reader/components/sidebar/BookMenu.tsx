@@ -18,7 +18,6 @@ import { DOWNLOAD_READEST_URL } from '@/services/constants';
 import { setKOSyncSettingsWindowVisible } from '@/app/reader/components/KOSyncSettings';
 import { setProofreadRulesVisibility } from '@/app/reader/components/ProofreadRules';
 import { setAboutDialogVisible } from '@/components/AboutWindow';
-import { setSponsorDialogVisible } from '@/components/SponsorWindow';
 import { setUpdateDialogVisible } from '@/components/UpdateWindow';
 import useBooksManager from '../../hooks/useBooksManager';
 import MenuItem from '@/components/MenuItem';
@@ -53,10 +52,6 @@ const BookMenu: React.FC<BookMenuProps> = ({ menuClassName, setIsDropdownOpen })
   };
   const showAboutReadest = () => {
     setAboutDialogVisible(true);
-    setIsDropdownOpen?.(false);
-  };
-  const showSponsorWindow = () => {
-    setSponsorDialogVisible(true);
     setIsDropdownOpen?.(false);
   };
   const showUpdateWindow = () => {
@@ -176,9 +171,10 @@ const BookMenu: React.FC<BookMenuProps> = ({ menuClassName, setIsDropdownOpen })
       />
       <MenuItem label={_('Reload Page')} shortcut='Shift+R' onClick={handleReloadPage} />
       <hr className='border-base-200 my-1' />
-      <MenuItem label={_('为我发"声"')} onClick={showSponsorWindow} />
       <MenuItem label={_('检查更新')} onClick={showUpdateWindow} />
-      {isWebAppPlatform() && <MenuItem label={_('Download OpenReadest')} onClick={downloadReadest} />}
+      {isWebAppPlatform() && (
+        <MenuItem label={_('Download OpenReadest')} onClick={downloadReadest} />
+      )}
       <MenuItem label={_('About OpenReadest')} onClick={showAboutReadest} />
     </Menu>
   );

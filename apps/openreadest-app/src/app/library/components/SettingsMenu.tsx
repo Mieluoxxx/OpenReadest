@@ -14,7 +14,6 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { tauriHandleSetAlwaysOnTop, tauriHandleToggleFullScreen } from '@/utils/window';
 import { setAboutDialogVisible } from '@/components/AboutWindow';
-import { setSponsorDialogVisible } from '@/components/SponsorWindow';
 import { setUpdateDialogVisible } from '@/components/UpdateWindow';
 import { setMigrateDataDirDialogVisible } from '@/app/library/components/MigrateDataWindow';
 import { requestStoragePermission } from '@/utils/permission';
@@ -52,11 +51,6 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setIsDropdownOpen }) => {
 
   const showAboutApp = () => {
     setAboutDialogVisible(true);
-    setIsDropdownOpen?.(false);
-  };
-
-  const showSponsorApp = () => {
-    setSponsorDialogVisible(true);
     setIsDropdownOpen?.(false);
   };
 
@@ -258,7 +252,6 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setIsDropdownOpen }) => {
         </>
       )}
       <hr aria-hidden='true' className='border-base-200 my-1' />
-      <MenuItem label={_('为我发"声"')} onClick={showSponsorApp} />
       <MenuItem label={_('检查更新')} onClick={showUpdateWindow} />
       {isWebAppPlatform() && <MenuItem label={_('Download OpenReadest')} onClick={downloadApp} />}
       <MenuItem label={_('About OpenReadest')} onClick={showAboutApp} />

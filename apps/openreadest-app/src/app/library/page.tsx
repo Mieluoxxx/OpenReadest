@@ -51,7 +51,6 @@ import {
 
 import { BookMetadata } from '@/libs/document';
 import { AboutWindow } from '@/components/AboutWindow';
-import { SponsorWindow } from '@/components/SponsorWindow';
 import { UpdateWindow } from '@/components/UpdateWindow';
 import { BookDetailModal } from '@/components/metadata';
 import { CatalogDialog } from './components/OPDSDialog';
@@ -916,7 +915,6 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       )}
       <WebDavAutoSyncRunner />
       <AboutWindow />
-      <SponsorWindow />
       <UpdateWindow />
       <MigrateDataWindow />
       {isSettingsDialogOpen && <SettingsDialog bookKey={''} />}
