@@ -16,6 +16,18 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 
 感谢原项目 [Readest](https://github.com/readest/readest) 提供的优秀基础！
 
+### 分叉基点（Fork Point）
+
+本项目从 Readest 上游的以下提交切出：
+
+- **上游提交**：`481d8198e9d02b8072d709e4e18610e478dee72d`
+- **日期**：2026-01-23
+- **上游说明**：fix(tts): set playback rate after play only on Linux (#3040)
+- **链接**：<https://github.com/readest/readest/commit/481d8198e9d02b8072d709e4e18610e478dee72d>
+
+自该提交之后，本仓库与上游分叉并独立演进；本仓库最早的独立提交为
+`4678aca4`（2026-03-08，feat: prepare OpenReadest fork for public upload）。
+
 ---
 
 ## 功能对比
