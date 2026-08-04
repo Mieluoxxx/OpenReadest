@@ -60,14 +60,20 @@ const DialogMenu: React.FC<DialogMenuProps> = ({
         'text-base sm:text-sm',
       )}
     >
-      <MenuItem
-        label={_('Global Settings')}
-        tooltip={isSettingsGlobal ? _('Apply to All Books') : _('Apply to This Book')}
-        buttonClass='lg:tooltip'
-        Icon={isSettingsGlobal ? <MdCheck size={iconSize} className='text-base-content' /> : null}
-        onClick={handleToggleGlobal}
-      />
-      <MenuItem label={resetLabel || _('Reset Settings')} onClick={handleResetToDefaults} />
+      {activePanel !== 'Integration' && (
+        <>
+          <MenuItem
+            label={_('Global Settings')}
+            tooltip={isSettingsGlobal ? _('Apply to All Books') : _('Apply to This Book')}
+            buttonClass='lg:tooltip'
+            Icon={
+              isSettingsGlobal ? <MdCheck size={iconSize} className='text-base-content' /> : null
+            }
+            onClick={handleToggleGlobal}
+          />
+          <MenuItem label={resetLabel || _('Reset Settings')} onClick={handleResetToDefaults} />
+        </>
+      )}
       {activePanel === 'Font' && (
         <>
           <MenuItem label={_('Clear Custom Fonts')} onClick={handleClearCustomFont} />

@@ -99,7 +99,10 @@ describe('WebDAV sync integration', () => {
       body: JSON.stringify({ updatedAt: 2, progress: 0.1 }),
     });
 
-    const result = await syncWebDavSelection(appService, profile, { books: [book], includeCovers: false });
+    const result = await syncWebDavSelection(appService, profile, {
+      books: [book],
+      includeCovers: false,
+    });
     expect(result.conflicts.length).toBe(0);
     const libraryText = await getText('Books', 'library.json');
     expect(JSON.parse(libraryText)[0].hash).toBe('hash2');
@@ -126,7 +129,11 @@ describe('WebDAV sync integration', () => {
       conflictStrategy: 'local',
     };
 
-    await syncWebDavSelection(appService, profileBase, { books: [book], includeCovers: false, includeBookFiles: false });
+    await syncWebDavSelection(appService, profileBase, {
+      books: [book],
+      includeCovers: false,
+      includeBookFiles: false,
+    });
 
     await putText('Books', 'hash3/config.json', JSON.stringify({ updatedAt: 2, progress: 0.3 }));
 
@@ -145,7 +152,7 @@ describe('WebDAV sync integration', () => {
     });
 
     expect(result.conflicts.length).toBe(1);
-    expect(result.conflicts[0].path).toContain('Books/hash3/config.json');
+    expect(result.conflicts[0]!.path).toContain('Books/hash3/config.json');
     expect(await getText('Books', 'hash3/config.json')).toContain('0.3');
   });
 });

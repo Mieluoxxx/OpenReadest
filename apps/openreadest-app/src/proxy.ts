@@ -14,7 +14,7 @@ const corsOptions = {
   'Access-Control-Max-Age': '86400',
 };
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const origin = request.headers.get('origin') ?? '';
   const isAllowedOrigin = allowedOrigins.includes(origin);
 

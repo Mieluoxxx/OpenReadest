@@ -36,6 +36,43 @@ use tauri_plugin_oauth::start;
 use tauri_plugin_opener::OpenerExt;
 use transfer_file::{download_file, upload_file};
 
+#[cfg(all(debug_assertions, target_os = "macos"))]
+fn clear_dev_webkit_cache(app: &tauri::App) {
+    if app.config().build.dev_url.is_none() {
+        return;
+    }
+
+    let Ok(cache_root) = app.path().cache_dir() else {
+        log::warn!("Failed to resolve the macOS cache directory");
+        return;
+    };
+    let webkit_cache = cache_root.join(env!("CARGO_PKG_NAME")).join("WebKit");
+
+    match std::fs::remove_dir_all(&webkit_cache) {
+        Ok(()) => log::info!("Cleared macOS dev WebKit cache: {webkit_cache:?}"),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => log::warn!("Failed to clear macOS dev WebKit cache: {error}"),
+    }
+}
+
+fn initial_webview_url(_app: &tauri::App) -> WebviewUrl {
+    // Keep the cache buster app-relative so Tauri resolves it against devUrl
+    // without classifying the localhost page as an external remote URL.
+    #[cfg(all(debug_assertions, target_os = "macos"))]
+    if _app.config().build.dev_url.is_some() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let started_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let cache_buster = format!("{}-{started_at}", std::process::id());
+        return WebviewUrl::App(PathBuf::from(format!("?_openreadest_dev={cache_buster}")));
+    }
+
+    WebviewUrl::default()
+}
+
 #[cfg(desktop)]
 fn allow_file_in_scopes(app: &AppHandle, files: Vec<PathBuf>) {
     let fs_scope = app.fs_scope();
@@ -262,6 +299,10 @@ pub fn run() {
             #[cfg(not(target_os = "android"))]
             let is_eink = false;
 
+            #[cfg(all(debug_assertions, target_os = "macos"))]
+            clear_dev_webkit_cache(app);
+
+            let app_handle = app.handle().clone();
             let eink_script = if is_eink {
                 "window.__OPENREADEST_IS_EINK = true;"
             } else {
@@ -295,39 +336,42 @@ pub fn run() {
                 eink_script = eink_script
             );
 
-            let app_handle = app.handle().clone();
-            let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                .background_throttling(BackgroundThrottlingPolicy::Disabled)
-                .background_color(if is_eink {
-                    tauri::window::Color(255, 255, 255, 255)
-                } else {
-                    tauri::window::Color(50, 49, 48, 255)
-                })
-                .initialization_script(&init_script)
-                .on_navigation(move |url| {
-                    if url.scheme() == "alipays" || url.scheme() == "alipay" {
-                        let url_str = url.as_str().to_string();
-                        #[cfg(target_os = "android")]
-                        {
-                            let handle = app_handle.clone();
-                            tauri::async_runtime::spawn(async move {
-                                match handle
-                                    .native_bridge()
-                                    .open_external_url(OpenExternalUrlRequest { url: url_str })
-                                {
-                                    Ok(result) => println!("Result: {:?}", result),
-                                    Err(e) => eprintln!("Error: {:?}", e),
-                                }
-                            });
+            let navigation_app_handle = app_handle.clone();
+            let win_builder =
+                WebviewWindowBuilder::new(&app_handle, "main", initial_webview_url(app))
+                    .background_throttling(BackgroundThrottlingPolicy::Disabled)
+                    .background_color(if is_eink {
+                        tauri::window::Color(255, 255, 255, 255)
+                    } else {
+                        tauri::window::Color(50, 49, 48, 255)
+                    })
+                    .initialization_script(&init_script)
+                    .on_navigation(move |url| {
+                        if url.scheme() == "alipays" || url.scheme() == "alipay" {
+                            let url_str = url.as_str().to_string();
+                            #[cfg(target_os = "android")]
+                            {
+                                let handle = navigation_app_handle.clone();
+                                tauri::async_runtime::spawn(async move {
+                                    match handle
+                                        .native_bridge()
+                                        .open_external_url(OpenExternalUrlRequest { url: url_str })
+                                    {
+                                        Ok(result) => println!("Result: {:?}", result),
+                                        Err(e) => eprintln!("Error: {:?}", e),
+                                    }
+                                });
+                            }
+                            #[cfg(not(target_os = "android"))]
+                            {
+                                let _ = navigation_app_handle
+                                    .opener()
+                                    .open_url(url_str, None::<&str>);
+                            }
+                            return false;
                         }
-                        #[cfg(not(target_os = "android"))]
-                        {
-                            let _ = app_handle.opener().open_url(url_str, None::<&str>);
-                        }
-                        return false;
-                    }
-                    true
-                });
+                        true
+                    });
 
             #[cfg(desktop)]
             let win_builder = win_builder.inner_size(800.0, 600.0).resizable(true);
@@ -363,11 +407,10 @@ pub fn run() {
             win_builder.build().unwrap();
             // let win = win_builder.build().unwrap();
             // win.open_devtools();
+            app_handle.emit("window-ready", ()).unwrap();
 
             #[cfg(target_os = "macos")]
             macos::menu::setup_macos_menu(app.handle())?;
-
-            app.handle().emit("window-ready", ()).unwrap();
 
             Ok(())
         })

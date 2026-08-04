@@ -10,7 +10,7 @@ import { VscSymbolColor } from 'react-icons/vsc';
 import { PiDotsThreeVerticalBold } from 'react-icons/pi';
 import { LiaHandPointerSolid } from 'react-icons/lia';
 import { IoAccessibilityOutline } from 'react-icons/io5';
-import { MdArrowBackIosNew, MdArrowForwardIos, MdClose } from 'react-icons/md';
+import { MdArrowBackIosNew, MdArrowForwardIos, MdClose, MdShare } from 'react-icons/md';
 import { getDirFromUILanguage } from '@/utils/rtl';
 import FontPanel from './FontPanel';
 import LayoutPanel from './LayoutPanel';
@@ -20,9 +20,11 @@ import Dialog from '@/components/Dialog';
 import DialogMenu from './DialogMenu';
 import ControlPanel from './ControlPanel';
 import LangPanel from './LangPanel';
+import IntegrationsPanel from './IntegrationsPanel';
 import MiscPanel from './MiscPanel';
 
-export type SettingsPanelType = 'Font' | 'Layout' | 'Color' | 'Control' | 'Language' | 'Custom';
+export type SettingsPanelType =
+  'Font' | 'Layout' | 'Color' | 'Control' | 'Language' | 'Integration' | 'Custom';
 export type SettingsPanelPanelProp = {
   bookKey: string;
   onRegisterReset: (resetFn: () => void) => void;
@@ -70,6 +72,11 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       label: _('Language'),
     },
     {
+      tab: 'Integration',
+      icon: MdShare,
+      label: _('Integrations'),
+    },
+    {
       tab: 'Custom',
       icon: IoAccessibilityOutline,
       label: _('Custom'),
@@ -98,6 +105,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     Color: null,
     Control: null,
     Language: null,
+    Integration: null,
     Custom: null,
   });
 
@@ -223,22 +231,24 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
               ))}
             </div>
             <div className='flex h-full items-center justify-end gap-x-2'>
-              <Dropdown
-                label={_('Settings Menu')}
-                className='dropdown-bottom dropdown-end'
-                buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0 flex items-center justify-center'
-                toggleButton={<PiDotsThreeVerticalBold />}
-              >
-                <DialogMenu
-                  activePanel={activePanel}
-                  onReset={handleResetCurrentPanel}
-                  resetLabel={
-                    currentPanel
-                      ? _('Reset {{settings}}', { settings: currentPanel.label })
-                      : undefined
-                  }
-                />
-              </Dropdown>
+              {activePanel !== 'Integration' && (
+                <Dropdown
+                  label={_('Settings Menu')}
+                  className='dropdown-bottom dropdown-end'
+                  buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0 flex items-center justify-center'
+                  toggleButton={<PiDotsThreeVerticalBold />}
+                >
+                  <DialogMenu
+                    activePanel={activePanel}
+                    onReset={handleResetCurrentPanel}
+                    resetLabel={
+                      currentPanel
+                        ? _('Reset {{settings}}', { settings: currentPanel.label })
+                        : undefined
+                    }
+                  />
+                </Dropdown>
+              )}
               <button
                 onClick={handleClose}
                 aria-label={_('Close')}
@@ -284,6 +294,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
             onRegisterReset={(fn) => registerResetFunction('Language', fn)}
           />
         )}
+        {activePanel === 'Integration' && <IntegrationsPanel />}
         {activePanel === 'Custom' && (
           <MiscPanel
             bookKey={bookKey}

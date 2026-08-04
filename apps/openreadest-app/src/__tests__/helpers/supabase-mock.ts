@@ -19,7 +19,7 @@ export const setupSupabaseMocks = async (
   const { supabase, createSupabaseAdminClient } = await import('@/utils/supabase');
 
   vi.mocked(supabase.auth.getUser).mockResolvedValue(
-    customResponses.getUser || {
+    (customResponses.getUser || {
       data: {
         user: {
           id: 'test-user-123',
@@ -31,7 +31,7 @@ export const setupSupabaseMocks = async (
         },
       },
       error: null,
-    },
+    }) as never,
   );
 
   vi.mocked(supabase.from).mockReturnValue({

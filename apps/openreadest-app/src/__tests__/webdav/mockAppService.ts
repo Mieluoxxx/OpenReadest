@@ -26,7 +26,11 @@ export const createMockAppService = () => {
   const readFile = async (path: string, base: BaseDir, mode: 'text' | 'binary') => {
     const item = stores[base].get(normalize(path));
     if (!item) throw new Error('not found');
-    if (mode === 'binary') return item.data.buffer.slice(item.data.byteOffset, item.data.byteOffset + item.data.byteLength);
+    if (mode === 'binary')
+      return item.data.buffer.slice(
+        item.data.byteOffset,
+        item.data.byteOffset + item.data.byteLength,
+      );
     return new TextDecoder().decode(item.data);
   };
 
@@ -67,7 +71,7 @@ export const createMockAppService = () => {
       await writeFile(path, base, text);
     },
     putBinary: async (base: BaseDir, path: string, bytes: Uint8Array) => {
-      await writeFile(path, base, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      await writeFile(path, base, new Uint8Array(bytes).buffer);
     },
     getText: async (base: BaseDir, path: string) => {
       return (await readFile(path, base, 'text')) as string;
@@ -77,4 +81,3 @@ export const createMockAppService = () => {
     },
   };
 };
-

@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { PiGear } from 'react-icons/pi';
 import { PiSun, PiMoon } from 'react-icons/pi';
 import { TbSunMoon } from 'react-icons/tb';
-import { MdCloud } from 'react-icons/md';
 
 import { invoke, PermissionState } from '@tauri-apps/api/core';
 import { isTauriAppPlatform, isWebAppPlatform } from '@/services/environment';
@@ -18,7 +17,6 @@ import { setAboutDialogVisible } from '@/components/AboutWindow';
 import { setSponsorDialogVisible } from '@/components/SponsorWindow';
 import { setUpdateDialogVisible } from '@/components/UpdateWindow';
 import { setMigrateDataDirDialogVisible } from '@/app/library/components/MigrateDataWindow';
-import { setWebDavCenterVisible } from '@/app/library/components/WebDavCenterWindow';
 import { requestStoragePermission } from '@/utils/permission';
 import { saveSysSettings } from '@/helpers/settings';
 import { selectDirectory } from '@/utils/bridge';
@@ -51,11 +49,6 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setIsDropdownOpen }) => {
   const [savedBookCoverForLockScreen, setSavedBookCoverForLockScreen] = useState(
     settings.savedBookCoverForLockScreen || '',
   );
-
-  const openWebDavCenter = () => {
-    setWebDavCenterVisible(true);
-    setIsDropdownOpen?.(false);
-  };
 
   const showAboutApp = () => {
     setAboutDialogVisible(true);
@@ -189,7 +182,6 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setIsDropdownOpen }) => {
       )}
       onCancel={() => setIsDropdownOpen?.(false)}
     >
-      <MenuItem label={_('WebDAV')} Icon={MdCloud} onClick={openWebDavCenter} />
       {isTauriAppPlatform() && !appService?.isMobile && (
         <MenuItem
           label={_('Auto Import on File Open')}

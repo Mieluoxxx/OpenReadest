@@ -5,7 +5,7 @@
 - 桌面端（Tauri）与 Android（APK）均可使用；Web 端受 CORS 影响，需服务端允许跨域。
 
 ## 在应用内配置
-打开：书库页面右上角菜单 → WebDAV中心
+打开：设置 → 集成 → 云同步 → WebDAV
 
 ### 字段说明
 - 服务器地址：WebDAV 服务端 URL，例如 `https://dav.example.com` 或 `https://dav.jianguoyun.com/dav`

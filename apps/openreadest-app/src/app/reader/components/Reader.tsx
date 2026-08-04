@@ -30,6 +30,7 @@ import { Toast } from '@/components/Toast';
 import { getLocale } from '@/utils/misc';
 import { initDayjs } from '@/utils/time';
 import ReaderContent from './ReaderContent';
+import WebDavCenterWindow from '@/app/library/components/WebDavCenterWindow';
 
 /*
 Z-Index Layering Guide:
@@ -170,6 +171,7 @@ const Reader: React.FC<{ ids?: string }> = ({ ids }) => {
         <AboutWindow />
         <SponsorWindow />
         <UpdateWindow />
+        <WebDavCenterWindow />
         <KOSyncSettingsWindow />
         <ProofreadRulesManager />
         <Toast />

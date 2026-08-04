@@ -2,8 +2,7 @@ import http from 'http';
 import { md5 } from '../../utils/md5';
 
 type Entry =
-  | { type: 'dir' }
-  | { type: 'file'; data: Uint8Array; etag: string; lastModified: string };
+  { type: 'dir' } | { type: 'file'; data: Uint8Array; etag: string; lastModified: string };
 
 const toUtcHttpDate = (date: Date) => date.toUTCString();
 
@@ -45,7 +44,9 @@ const buildPropfindXml = (store: Map<string, Entry>, hrefs: string[]) => {
       const etag = entry.type === 'file' ? entry.etag : '';
       const lastModified = entry.type === 'file' ? entry.lastModified : '';
       const contentLength = entry.type === 'file' ? entry.data.length : 0;
-      const resourcetype = isDir ? '<d:resourcetype><d:collection/></d:resourcetype>' : '<d:resourcetype/>';
+      const resourcetype = isDir
+        ? '<d:resourcetype><d:collection/></d:resourcetype>'
+        : '<d:resourcetype/>';
       return (
         `<d:response>` +
         `<d:href>${href}${isDir && !href.endsWith('/') ? '/' : ''}</d:href>` +
@@ -85,7 +86,10 @@ export const createMockWebDavServer = async (options: {
 
     const url = new URL(req.url || '/', 'http://localhost');
     const pathname = decodeURIComponent(url.pathname || '/');
-    const path = basePrefix && pathname.startsWith(basePrefix) ? pathname.slice(basePrefix.length) || '/' : pathname;
+    const path =
+      basePrefix && pathname.startsWith(basePrefix)
+        ? pathname.slice(basePrefix.length) || '/'
+        : pathname;
     const normalized = path === '' ? '/' : path;
 
     if (req.method === 'MKCOL') {
@@ -122,10 +126,12 @@ export const createMockWebDavServer = async (options: {
       const range = req.headers['range'];
       if (typeof range === 'string' && range.startsWith('bytes=')) {
         const [startStr, endStr] = range.slice('bytes='.length).split('-');
-        const start = Number.parseInt(startStr, 10);
+        const start = Number.parseInt(startStr ?? '0', 10);
         const end = endStr ? Number.parseInt(endStr, 10) : entry.data.length - 1;
         const clampedStart = Number.isFinite(start) ? Math.max(0, start) : 0;
-        const clampedEnd = Number.isFinite(end) ? Math.min(entry.data.length - 1, end) : entry.data.length - 1;
+        const clampedEnd = Number.isFinite(end)
+          ? Math.min(entry.data.length - 1, end)
+          : entry.data.length - 1;
         const slice = entry.data.slice(clampedStart, clampedEnd + 1);
         res.statusCode = 206;
         res.setHeader('Content-Range', `bytes ${clampedStart}-${clampedEnd}/${entry.data.length}`);
@@ -146,14 +152,14 @@ export const createMockWebDavServer = async (options: {
 
     if (req.method === 'PROPFIND') {
       const depth = (req.headers['depth'] as string | undefined) ?? '1';
-      const entry = store.get(normalized.endsWith('/') ? normalized.slice(0, -1) : normalized) ?? store.get(normalized);
+      const entry =
+        store.get(normalized.endsWith('/') ? normalized.slice(0, -1) : normalized) ??
+        store.get(normalized);
       if (!entry) {
         res.statusCode = 404;
         res.end();
         return;
       }
-      const hrefBase = basePrefix ? `${basePrefix}${normalized}` : normalized;
-      const selfHref = hrefBase === '' ? '/' : hrefBase;
       const hrefs: string[] = [];
       if (entry.type === 'dir') {
         const dirPath = normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
@@ -188,4 +194,3 @@ export const createMockWebDavServer = async (options: {
     },
   };
 };
-

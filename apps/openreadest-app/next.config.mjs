@@ -50,17 +50,6 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: isDev
-              ? 'public, max-age=0, must-revalidate'
-              : 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
     ];
   },
 };
