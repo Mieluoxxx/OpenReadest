@@ -55,19 +55,10 @@ fn clear_dev_webkit_cache(app: &tauri::App) {
     }
 }
 
-fn initial_webview_url(_app: &tauri::App) -> WebviewUrl {
-    // Keep the cache buster app-relative so Tauri resolves it against devUrl
-    // without classifying the localhost page as an external remote URL.
+fn initial_webview_url(app: &tauri::App) -> WebviewUrl {
     #[cfg(all(debug_assertions, target_os = "macos"))]
-    if _app.config().build.dev_url.is_some() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        let started_at = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default();
-        let cache_buster = format!("{}-{started_at}", std::process::id());
-        return WebviewUrl::App(PathBuf::from(format!("?_openreadest_dev={cache_buster}")));
+    if let Some(dev_url) = app.config().build.dev_url.as_ref() {
+        return WebviewUrl::External(dev_url.clone());
     }
 
     WebviewUrl::default()

@@ -17,6 +17,9 @@ crate-type = ["staticlib", "cdylib", "lib"]
 [features]
 # Internal feature to suppress warnings from old objc crate
 cargo-clippy = []
+# Enabled by `tauri build`, and must stay off during `tauri dev` so that
+# `cfg(dev)` holds and the devUrl page is treated as a local origin by the ACL.
+custom-protocol = ["tauri/custom-protocol"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -36,7 +39,7 @@ reqwest = { version = "0.12", default-features = false, features = [
   "json",
   "stream",
 ] }
-tauri = { version = "2", features = [ "protocol-asset", "custom-protocol" ] }
+tauri = { version = "2", features = [ "protocol-asset" ] }
 tauri-build = "2"
 tauri-plugin-log = "2"
 tauri-plugin-fs = "2"
