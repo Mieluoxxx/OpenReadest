@@ -55,9 +55,9 @@ fn clear_dev_webkit_cache(app: &tauri::App) {
     }
 }
 
-fn initial_webview_url(app: &tauri::App) -> WebviewUrl {
+fn initial_webview_url(_app: &tauri::App) -> WebviewUrl {
     #[cfg(all(debug_assertions, target_os = "macos"))]
-    if let Some(dev_url) = app.config().build.dev_url.as_ref() {
+    if let Some(dev_url) = _app.config().build.dev_url.as_ref() {
         return WebviewUrl::External(dev_url.clone());
     }
 
