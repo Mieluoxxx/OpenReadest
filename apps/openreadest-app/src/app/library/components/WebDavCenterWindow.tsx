@@ -3,7 +3,7 @@
 import clsx from 'clsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { MdClose, MdCloudUpload, MdCloudDownload, MdPlayArrow, MdPause, MdDelete } from 'react-icons/md';
+import { MdClose, MdCloudUpload, MdCloudDownload, MdPlayArrow, MdPause } from 'react-icons/md';
 import { useEnv } from '@/context/EnvContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useLibraryStore } from '@/store/libraryStore';
@@ -19,7 +19,7 @@ import {
   getRemoteLibraryPath,
 } from '@/services/webdav/sync/paths';
 import { WebDavProfile, WebDavConflictResolutionStrategy } from '@/services/webdav/models';
-import { getUniqueWebDavProfileName, validateWebDavProfileName } from '@/services/webdav/profileName';
+import { validateWebDavProfileName } from '@/services/webdav/profileName';
 import { Book, BookFormat } from '@/types/book';
 import { EXTS } from '@/libs/document';
 
@@ -47,7 +47,7 @@ const defaultProfile = (): WebDavProfile => ({
   conflictStrategy: 'manual',
 });
 
-export const WebDavCenterWindow = () => {
+export const WebDavCenterWindow = ({ embedded = false }: { embedded?: boolean }) => {
   const _ = useTranslation();
   const { appService, envConfig } = useEnv();
   const getVisibleLibrary = useLibraryStore((s) => s.getVisibleLibrary);
@@ -81,7 +81,7 @@ export const WebDavCenterWindow = () => {
     setAutoSyncIntervalMinutes,
   } = useWebDavStore();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(embedded);
   const [editing, setEditing] = useState<WebDavProfile>(() => defaultProfile());
   const [selectedUploadHashes, setSelectedUploadHashes] = useState<Set<string>>(new Set());
   const [selectedDownloadHashes, setSelectedDownloadHashes] = useState<Set<string>>(new Set());
@@ -89,12 +89,17 @@ export const WebDavCenterWindow = () => {
   const [remoteBooks, setRemoteBooks] = useState<
     Array<{ hash: string; title: string; sourceTitle?: string; format?: BookFormat }>
   >([]);
-  const [remoteCountInfo, setRemoteCountInfo] = useState<{ dirCount: number; libraryCount: number } | null>(null);
+  const [remoteCountInfo, setRemoteCountInfo] = useState<{
+    dirCount: number;
+    libraryCount: number;
+  } | null>(null);
   const resumeResolverRef = useRef<(() => void) | null>(null);
   const cancelRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    if (embedded) return;
+
     const handleCustomEvent = (event: CustomEvent) => {
       setIsOpen(event.detail.visible);
       setWebDavCenterOpen(event.detail.visible);
@@ -106,7 +111,7 @@ export const WebDavCenterWindow = () => {
     return () => {
       if (el) el.removeEventListener('setDialogVisibility', handleCustomEvent as EventListener);
     };
-  }, [setWebDavCenterOpen]);
+  }, [embedded, setWebDavCenterOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -139,7 +144,8 @@ export const WebDavCenterWindow = () => {
   const filteredLocalBooks = useMemo(() => {
     if (!normalizedQuery) return library;
     return library.filter((b) => {
-      const haystack = `${b.title} ${b.sourceTitle || ''} ${b.author || ''} ${b.format} ${b.hash}`.toLowerCase();
+      const haystack =
+        `${b.title} ${b.sourceTitle || ''} ${b.author || ''} ${b.format} ${b.hash}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
   }, [library, normalizedQuery]);
@@ -147,7 +153,8 @@ export const WebDavCenterWindow = () => {
   const filteredRemoteBooks = useMemo(() => {
     if (!normalizedQuery) return remoteBooks;
     return remoteBooks.filter((b) => {
-      const haystack = `${b.title} ${b.sourceTitle || ''} ${b.format || ''} ${b.hash}`.toLowerCase();
+      const haystack =
+        `${b.title} ${b.sourceTitle || ''} ${b.format || ''} ${b.hash}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
   }, [remoteBooks, normalizedQuery]);
@@ -160,7 +167,12 @@ export const WebDavCenterWindow = () => {
     const idToName = Object.fromEntries(profiles.map((p) => [p.id, p.name]));
     const usedNames = profiles.map((p) => p.name);
     const id = editing.id || uuidv4();
-    const check = validateWebDavProfileName(editing.name || '', usedNames, editing.id || null, idToName);
+    const check = validateWebDavProfileName(
+      editing.name || '',
+      usedNames,
+      editing.id || null,
+      idToName,
+    );
     if (!check.ok) {
       showToast(_(check.error), 'error');
       return null;
@@ -179,14 +191,6 @@ export const WebDavCenterWindow = () => {
     upsertProfile(next);
     setEditing(next);
     showToast(_('配置已保存'), 'success');
-  };
-
-  const createProfile = () => {
-    const name = getUniqueWebDavProfileName('WebDAV', profiles.map((p) => p.name));
-    const p = { ...defaultProfile(), name };
-    upsertProfile(p);
-    setEditing(p);
-    nameInputRef.current?.focus();
   };
 
   const removeProfile = () => {
@@ -265,7 +269,7 @@ export const WebDavCenterWindow = () => {
     );
 
     let libraryBooks: Array<Pick<Book, 'hash' | 'title' | 'sourceTitle' | 'format'>> = [];
-      const libraryRes = await client.get(`/${getRemoteLibraryPath()}`);
+    const libraryRes = await client.get(`/${getRemoteLibraryPath()}`);
     if (libraryRes.ok && libraryRes.data) {
       const text = new TextDecoder().decode(libraryRes.data);
       const parsed = JSON.parse(text) as Array<Book>;
@@ -282,7 +286,8 @@ export const WebDavCenterWindow = () => {
         direction: 'download',
         path: getRemoteLibraryPath(),
         status: 'failed',
-        message: libraryRes.error || (libraryRes.status ? `状态码：${libraryRes.status}` : '读取失败'),
+        message:
+          libraryRes.error || (libraryRes.status ? `状态码：${libraryRes.status}` : '读取失败'),
       });
     }
 
@@ -366,7 +371,9 @@ export const WebDavCenterWindow = () => {
   const inferRemoteBookFile = async (client: WebDavClient, hash: string) => {
     const res = await client.propfind(`/${READEST_WEBDAV_BOOKS_DIR}/${hash}/`, { depth: '1' });
     if (!res.ok || !res.data) return null;
-    const files = res.data.filter((r) => !r.isCollection).map((r) => r.path.split('/').filter(Boolean).pop() || '');
+    const files = res.data
+      .filter((r) => !r.isCollection)
+      .map((r) => r.path.split('/').filter(Boolean).pop() || '');
     const knownExts = new Set(Object.values(EXTS));
     const bookFile = files.find((name) => {
       const ext = name.split('.').pop()?.toLowerCase() || '';
@@ -374,7 +381,8 @@ export const WebDavCenterWindow = () => {
     });
     if (!bookFile) return null;
     const ext = bookFile.split('.').pop()?.toLowerCase() || '';
-    const format = (Object.entries(EXTS).find(([, v]) => v === ext)?.[0] as BookFormat | undefined) ?? undefined;
+    const format =
+      (Object.entries(EXTS).find(([, v]) => v === ext)?.[0] as BookFormat | undefined) ?? undefined;
     const title = bookFile.replace(new RegExp(`\\.${ext}$`, 'i'), '');
     return { bookFile, format, title };
   };
@@ -434,7 +442,7 @@ export const WebDavCenterWindow = () => {
         await upsertRemoteLibraryIndex(client, pickBooks);
       }
 
-        const { conflicts } = await syncWebDavSelection(
+      const { conflicts } = await syncWebDavSelection(
         appService,
         profile,
         {
@@ -484,19 +492,27 @@ export const WebDavCenterWindow = () => {
       <div className='flex min-w-0 flex-col'>
         <div className='truncate text-base font-semibold'>{_('WebDAV 设置与同步')}</div>
         {lastSuccessAt ? (
-          <div className='text-base-content/60 text-xs'>{_('上次成功同步：{{time}}', { time: formatDateTime(lastSuccessAt) })}</div>
+          <div className='text-base-content/60 text-xs'>
+            {_('上次成功同步：{{time}}', { time: formatDateTime(lastSuccessAt) })}
+          </div>
         ) : (
           <div className='text-base-content/60 text-xs'>{_('尚未进行同步')}</div>
         )}
       </div>
-      <button className='btn btn-ghost btn-sm btn-circle' onClick={() => setWebDavCenterVisible(false)} aria-label={_('关闭')}>
+      <button
+        className='btn btn-ghost btn-sm btn-circle'
+        onClick={() => setWebDavCenterVisible(false)}
+        aria-label={_('关闭')}
+      >
         <MdClose size={18} />
       </button>
     </div>
   );
 
   const progressPercent =
-    progress && progress.totalItems > 0 ? Math.round((progress.completedItems / progress.totalItems) * 100) : 0;
+    progress && progress.totalItems > 0
+      ? Math.round((progress.completedItems / progress.totalItems) * 100)
+      : 0;
 
   const formatServerAddress = (serverUrl: string) => {
     try {
@@ -507,6 +523,500 @@ export const WebDavCenterWindow = () => {
       return serverUrl.replace(/^https?:\/\//i, '').split('/')[0] || serverUrl;
     }
   };
+
+  const content = (
+    <div className='flex flex-col gap-4'>
+      <div className='flex flex-col gap-3'>
+        <div
+          className={clsx(
+            'flex flex-col gap-3',
+            !embedded && 'sm:flex-row sm:items-center sm:justify-between',
+          )}
+        >
+          <div className={clsx('flex flex-wrap gap-2', !embedded && 'flex-1 items-center')}>
+            <select
+              className={clsx('select select-bordered w-full', embedded && 'basis-full')}
+              value={activeProfileId ?? ''}
+              onChange={(e) => {
+                const id = e.target.value;
+                setActiveProfileId(id || null);
+                const p = profiles.find((x) => x.id === id);
+                if (p) setEditing(p);
+              }}
+            >
+              <option value=''>{_('请选择配置')}</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='flex flex-wrap items-center gap-2'>
+            <button className='btn btn-sm' onClick={saveProfile}>
+              {_('保存配置')}
+            </button>
+            <button className='btn btn-sm' onClick={testConnection}>
+              {_('测试连接')}
+            </button>
+            <button
+              className='btn btn-error btn-sm'
+              onClick={removeProfile}
+              disabled={!selectedProfile}
+            >
+              {_('删除配置')}
+            </button>
+          </div>
+        </div>
+
+        <div className={clsx('grid grid-cols-1 gap-3', !embedded && 'sm:grid-cols-2')}>
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm'>{_('备注名')}</label>
+            <input
+              ref={nameInputRef}
+              className='input input-bordered w-full'
+              value={editing.name}
+              onChange={(e) => setEditing((p) => ({ ...p, name: e.target.value }))}
+              placeholder='WebDAV_1'
+            />
+          </div>
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm'>{_('服务器地址')}</label>
+            <input
+              className='input input-bordered w-full'
+              value={editing.serverUrl}
+              onChange={(e) => setEditing((p) => ({ ...p, serverUrl: e.target.value }))}
+              placeholder='https://dav.example.com'
+            />
+          </div>
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm'>{_('远端路径')}</label>
+            <input
+              className='input input-bordered w-full'
+              value={editing.remotePath}
+              onChange={(e) => setEditing((p) => ({ ...p, remotePath: e.target.value }))}
+              placeholder='/remote/path'
+            />
+          </div>
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm'>{_('用户名')}</label>
+            <input
+              className='input input-bordered w-full'
+              value={editing.username}
+              onChange={(e) => setEditing((p) => ({ ...p, username: e.target.value }))}
+            />
+          </div>
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm'>{_('密码')}</label>
+            <input
+              className='input input-bordered w-full'
+              type='password'
+              value={editing.password}
+              onChange={(e) => setEditing((p) => ({ ...p, password: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div
+          className={clsx(
+            'flex flex-col gap-3',
+            !embedded && 'sm:flex-row sm:items-center sm:justify-between',
+          )}
+        >
+          <div className={clsx('flex gap-3', embedded ? 'flex-col' : 'items-center')}>
+            <label className='flex items-center gap-2'>
+              <input
+                type='checkbox'
+                className='checkbox checkbox-sm'
+                checked={!!editing.allowInsecureHttp}
+                onChange={(e) => setEditing((p) => ({ ...p, allowInsecureHttp: e.target.checked }))}
+              />
+              <span className='text-sm'>{_('允许 HTTP（不安全）')}</span>
+            </label>
+            <label className='flex items-center gap-2'>
+              <input
+                type='checkbox'
+                className='checkbox checkbox-sm'
+                checked={!!editing.allowInsecureTls}
+                onChange={(e) => setEditing((p) => ({ ...p, allowInsecureTls: e.target.checked }))}
+              />
+              <span className='text-sm'>{_('允许不受信任证书')}</span>
+            </label>
+          </div>
+          <div className={clsx('flex gap-2', embedded ? 'flex-col items-stretch' : 'items-center')}>
+            <span className='text-sm'>{_('冲突策略')}</span>
+            <select
+              className={clsx('select select-bordered select-sm', embedded && 'w-full')}
+              value={editing.conflictStrategy}
+              onChange={(e) =>
+                setEditing((p) => ({
+                  ...p,
+                  conflictStrategy: e.target.value as WebDavConflictResolutionStrategy,
+                }))
+              }
+            >
+              <option value='manual'>{_('手动处理')}</option>
+              <option value='newest'>{_('时间戳优先')}</option>
+              <option value='local'>{_('本地优先')}</option>
+              <option value='remote'>{_('云端优先')}</option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          className={clsx(
+            'flex flex-col gap-3',
+            !embedded && 'sm:flex-row sm:items-center sm:justify-between',
+          )}
+        >
+          <label className='flex items-center gap-2'>
+            <input
+              type='checkbox'
+              className='checkbox checkbox-sm'
+              checked={autoSyncEnabled}
+              onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+            />
+            <span className='text-sm'>{_('开启自动同步（仅在应用运行时）')}</span>
+          </label>
+          <div className={clsx('flex gap-2', embedded ? 'flex-col items-stretch' : 'items-center')}>
+            <span className='text-sm'>{_('同步间隔（分钟）')}</span>
+            <input
+              className={clsx('input input-bordered input-sm w-24', embedded && 'w-full')}
+              type='number'
+              min={5}
+              max={1440}
+              value={autoSyncIntervalMinutes}
+              onChange={(e) =>
+                setAutoSyncIntervalMinutes(Number.parseInt(e.target.value, 10) || 15)
+              }
+              disabled={!autoSyncEnabled}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className='border-base-300 rounded-xl border'>
+        <div className='border-base-300 flex border-b'>
+          <button
+            className={clsx(
+              'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
+              activeTab === 'upload'
+                ? 'border-base-content text-base-content border-b-2'
+                : 'text-base-content/60',
+            )}
+            onClick={() => setActiveTab('upload')}
+          >
+            {_('上传')}
+          </button>
+          <button
+            className={clsx(
+              'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
+              activeTab === 'download'
+                ? 'border-base-content text-base-content border-b-2'
+                : 'text-base-content/60',
+            )}
+            onClick={() => setActiveTab('download')}
+          >
+            {_('下载')}
+          </button>
+          <button
+            className={clsx(
+              'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
+              activeTab === 'logs'
+                ? 'border-base-content text-base-content border-b-2'
+                : 'text-base-content/60',
+            )}
+            onClick={() => setActiveTab('logs')}
+          >
+            {_('同步日志')}
+          </button>
+          <button
+            className={clsx(
+              'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
+              activeTab === 'profiles'
+                ? 'border-base-content text-base-content border-b-2'
+                : 'text-base-content/60',
+            )}
+            onClick={() => setActiveTab('profiles')}
+          >
+            {_('配置列表')}
+          </button>
+        </div>
+
+        {activeTab === 'upload' && (
+          <div className='h-72 overflow-y-auto p-2'>
+            <div className='flex items-center justify-between px-2 pb-2'>
+              <div className='text-base-content/60 text-xs'>{_('本地书籍')}</div>
+              <input
+                className='input input-bordered input-sm w-56'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={_('搜索')}
+              />
+            </div>
+            <ul className='space-y-1'>
+              {filteredLocalBooks.map((b) => {
+                const selected = selectedUploadHashes.has(b.hash);
+                return (
+                  <li
+                    key={b.hash}
+                    className='hover:bg-base-200 flex cursor-pointer items-center justify-between rounded p-2'
+                    onClick={() => {
+                      setSelectedUploadHashes((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(b.hash)) next.delete(b.hash);
+                        else next.add(b.hash);
+                        return next;
+                      });
+                    }}
+                  >
+                    <div className='flex min-w-0 items-center gap-3'>
+                      <input
+                        type='checkbox'
+                        className='checkbox checkbox-sm'
+                        readOnly
+                        checked={selected}
+                      />
+                      <span className='truncate text-sm'>{b.title}</span>
+                    </div>
+                    <div className='text-base-content/50 text-xs'>{b.format}</div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {activeTab === 'download' && (
+          <div className='h-72 overflow-y-auto p-2'>
+            <div className='flex flex-col gap-2 px-2 pb-2 sm:flex-row sm:items-center sm:justify-between'>
+              <div className='min-w-0'>
+                <div className='text-base-content/70 text-xs font-medium'>{_('云端书籍')}</div>
+                <div className='text-base-content/60 break-words text-[11px] leading-5 sm:text-xs'>
+                  {remoteCountInfo
+                    ? `${_('目录')} ${remoteCountInfo.dirCount} · ${_('清单')} ${remoteCountInfo.libraryCount}`
+                    : ''}
+                </div>
+              </div>
+              <div className='flex w-full items-center gap-2 sm:w-auto'>
+                <input
+                  className='input input-bordered input-sm w-full sm:w-56'
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={_('搜索')}
+                />
+                <button className='btn btn-ghost btn-xs' onClick={() => loadRemoteBooks()}>
+                  {_('刷新')}
+                </button>
+              </div>
+            </div>
+            <ul className='space-y-1'>
+              {filteredRemoteBooks.map((b) => {
+                const selected = selectedDownloadHashes.has(b.hash);
+                return (
+                  <li
+                    key={b.hash}
+                    className='hover:bg-base-200 flex cursor-pointer items-center justify-between rounded p-2'
+                    onClick={() => {
+                      setSelectedDownloadHashes((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(b.hash)) next.delete(b.hash);
+                        else next.add(b.hash);
+                        return next;
+                      });
+                    }}
+                  >
+                    <div className='flex min-w-0 items-center gap-3'>
+                      <input
+                        type='checkbox'
+                        className='checkbox checkbox-sm'
+                        readOnly
+                        checked={selected}
+                      />
+                      <span className='truncate text-sm'>{b.title}</span>
+                    </div>
+                    <div className='text-base-content/50 text-xs'>{b.format || ''}</div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className='h-72 overflow-y-auto p-3'>
+            <div className='flex items-center justify-between pb-2'>
+              <div className='text-base-content/60 text-xs'>{_('最多保留 500 条记录')}</div>
+              <div className='flex items-center gap-2'>
+                <button className='btn btn-ghost btn-xs' onClick={clearLogs}>
+                  {_('清空')}
+                </button>
+                <button
+                  className='btn btn-ghost btn-xs'
+                  onClick={async () => {
+                    if (!appService) return;
+                    const ok = await appService.saveFile(
+                      'webdav-sync-log.json',
+                      JSON.stringify(logs, null, 2),
+                      'application/json',
+                    );
+                    if (ok) showToast(_('日志已导出'), 'success');
+                  }}
+                >
+                  {_('导出')}
+                </button>
+              </div>
+            </div>
+            <div className='space-y-2'>
+              {logs.map((l) => (
+                <div key={l.id} className='border-base-300 rounded-lg border p-2 text-sm'>
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='truncate'>{l.path}</div>
+                    <div className='text-base-content/60 text-xs'>
+                      {formatDateTime(l.timestamp)}
+                    </div>
+                  </div>
+                  <div className='text-base-content/60 flex items-center justify-between pt-1 text-xs'>
+                    <span>
+                      {l.direction === 'upload' ? _('上传') : _('下载')} · {l.status}
+                    </span>
+                    <span className='truncate'>{l.message || ''}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profiles' && (
+          <div className='h-72 overflow-y-auto p-2'>
+            <div className='flex items-center justify-between gap-2 px-2 pb-2'>
+              <div className='text-base-content/60 text-xs'>{_('已保存配置')}</div>
+              <div className='flex items-center gap-2'>
+                <button
+                  className='btn btn-ghost btn-xs'
+                  onClick={() => {
+                    if (!selectedProfile) return;
+                    setEditing(selectedProfile);
+                    nameInputRef.current?.focus();
+                  }}
+                  disabled={!selectedProfile}
+                >
+                  {_('编辑')}
+                </button>
+                <button
+                  className='btn btn-ghost btn-xs'
+                  onClick={removeProfile}
+                  disabled={!selectedProfile}
+                >
+                  {_('删除')}
+                </button>
+                <button
+                  className='btn btn-ghost btn-xs'
+                  onClick={() => {
+                    if (!selectedProfile) return;
+                    setActiveProfileId(selectedProfile.id);
+                    showToast(_('已设为默认'), 'success');
+                  }}
+                  disabled={!selectedProfile}
+                >
+                  {_('设为默认')}
+                </button>
+              </div>
+            </div>
+            <ul className='space-y-1'>
+              {profiles.map((p) => {
+                const isActive = p.id === activeProfileId;
+                return (
+                  <li
+                    key={p.id}
+                    className={clsx(
+                      'flex cursor-pointer items-center justify-between gap-3 rounded p-2',
+                      isActive ? 'bg-base-200' : 'hover:bg-base-200',
+                    )}
+                    onClick={() => {
+                      setActiveProfileId(p.id);
+                      setEditing(p);
+                    }}
+                  >
+                    <div className='min-w-0'>
+                      <div className='flex items-center gap-2'>
+                        <span className='truncate text-sm font-medium'>{p.name}</span>
+                        {isActive ? (
+                          <span className='badge badge-primary badge-xs'>{_('默认')}</span>
+                        ) : null}
+                      </div>
+                      <div className='text-base-content/60 truncate text-xs'>
+                        {formatServerAddress(p.serverUrl)}
+                      </div>
+                    </div>
+                    <div className='text-base-content/60 text-xs'>
+                      {p.lastSyncAt ? formatDateTime(p.lastSyncAt) : _('尚未同步')}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        <div className='border-base-300 bg-base-200/30 border-t p-4'>
+          {isSyncing && (
+            <div className='mb-3'>
+              <div className='flex items-center justify-between text-xs'>
+                <span className='text-base-content/70'>{progress?.currentPath || ''}</span>
+                <span className='text-base-content/70'>{progressPercent}%</span>
+              </div>
+              <div className='bg-base-300 mt-1 h-2 w-full overflow-hidden rounded-full'>
+                <div
+                  className='bg-primary h-full transition-all'
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className='grid grid-cols-2 gap-3'>
+            <button
+              className='btn btn-primary w-full'
+              disabled={isSyncing || selectedUploadHashes.size === 0}
+              onClick={() => startSync('upload')}
+            >
+              <MdCloudUpload size={18} />
+              {_('上传选中书籍')}
+            </button>
+            <button
+              className='btn btn-primary w-full'
+              disabled={isSyncing || selectedDownloadHashes.size === 0}
+              onClick={() => startSync('download')}
+            >
+              <MdCloudDownload size={18} />
+              {_('下载选中书籍')}
+            </button>
+          </div>
+
+          <div className='mt-3 flex items-center justify-between'>
+            <button className='btn btn-ghost btn-sm' onClick={togglePause} disabled={!isSyncing}>
+              {isPaused ? <MdPlayArrow size={18} /> : <MdPause size={18} />}
+              {isPaused ? _('恢复') : _('暂停')}
+            </button>
+            <button
+              className='btn btn-ghost btn-sm'
+              onClick={() => {
+                cancelRef.current = true;
+                showToast(_('已请求停止，当前任务完成后将退出'), 'info');
+              }}
+              disabled={!isSyncing}
+            >
+              {_('停止')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) return content;
 
   return (
     <Dialog
@@ -519,450 +1029,7 @@ export const WebDavCenterWindow = () => {
       }}
       boxClassName='sm:!w-[720px] sm:!max-w-screen-md sm:h-auto'
     >
-      <div className='flex flex-col gap-4'>
-        <div className='flex flex-col gap-3'>
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-            <div className='flex flex-1 items-center gap-2'>
-              <select
-                className='select select-bordered w-full'
-                value={activeProfileId ?? ''}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setActiveProfileId(id || null);
-                  const p = profiles.find((x) => x.id === id);
-                  if (p) setEditing(p);
-                }}
-              >
-                <option value=''>{_('请选择配置')}</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <button className='btn btn-ghost btn-sm' onClick={createProfile}>
-                {_('新增')}
-              </button>
-              <button className='btn btn-ghost btn-sm' onClick={removeProfile} disabled={!selectedProfile}>
-                <MdDelete size={18} />
-              </button>
-            </div>
-            <div className='flex items-center gap-2'>
-              <button className='btn btn-sm' onClick={saveProfile}>
-                {_('保存配置')}
-              </button>
-              <button className='btn btn-sm' onClick={testConnection}>
-                {_('测试连接')}
-              </button>
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-            <div className='flex flex-col gap-1'>
-              <label className='text-sm'>{_('备注名')}</label>
-              <input
-                ref={nameInputRef}
-                className='input input-bordered w-full'
-                value={editing.name}
-                onChange={(e) => setEditing((p) => ({ ...p, name: e.target.value }))}
-                placeholder='WebDAV_1'
-              />
-            </div>
-            <div className='flex flex-col gap-1'>
-              <label className='text-sm'>{_('服务器地址')}</label>
-              <input
-                className='input input-bordered w-full'
-                value={editing.serverUrl}
-                onChange={(e) => setEditing((p) => ({ ...p, serverUrl: e.target.value }))}
-                placeholder='https://dav.example.com'
-              />
-            </div>
-            <div className='flex flex-col gap-1'>
-              <label className='text-sm'>{_('远端路径')}</label>
-              <input
-                className='input input-bordered w-full'
-                value={editing.remotePath}
-                onChange={(e) => setEditing((p) => ({ ...p, remotePath: e.target.value }))}
-                placeholder='/remote/path'
-              />
-            </div>
-            <div className='flex flex-col gap-1'>
-              <label className='text-sm'>{_('用户名')}</label>
-              <input
-                className='input input-bordered w-full'
-                value={editing.username}
-                onChange={(e) => setEditing((p) => ({ ...p, username: e.target.value }))}
-              />
-            </div>
-            <div className='flex flex-col gap-1'>
-              <label className='text-sm'>{_('密码')}</label>
-              <input
-                className='input input-bordered w-full'
-                type='password'
-                value={editing.password}
-                onChange={(e) => setEditing((p) => ({ ...p, password: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-            <div className='flex items-center gap-3'>
-              <label className='flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  className='checkbox checkbox-sm'
-                  checked={!!editing.allowInsecureHttp}
-                  onChange={(e) => setEditing((p) => ({ ...p, allowInsecureHttp: e.target.checked }))}
-                />
-                <span className='text-sm'>{_('允许 HTTP（不安全）')}</span>
-              </label>
-              <label className='flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  className='checkbox checkbox-sm'
-                  checked={!!editing.allowInsecureTls}
-                  onChange={(e) => setEditing((p) => ({ ...p, allowInsecureTls: e.target.checked }))}
-                />
-                <span className='text-sm'>{_('允许不受信任证书')}</span>
-              </label>
-            </div>
-            <div className='flex items-center gap-2'>
-              <span className='text-sm'>{_('冲突策略')}</span>
-              <select
-                className='select select-bordered select-sm'
-                value={editing.conflictStrategy}
-                onChange={(e) =>
-                  setEditing((p) => ({ ...p, conflictStrategy: e.target.value as WebDavConflictResolutionStrategy }))
-                }
-              >
-                <option value='manual'>{_('手动处理')}</option>
-                <option value='newest'>{_('时间戳优先')}</option>
-                <option value='local'>{_('本地优先')}</option>
-                <option value='remote'>{_('云端优先')}</option>
-              </select>
-            </div>
-          </div>
-
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-            <label className='flex items-center gap-2'>
-              <input
-                type='checkbox'
-                className='checkbox checkbox-sm'
-                checked={autoSyncEnabled}
-                onChange={(e) => setAutoSyncEnabled(e.target.checked)}
-              />
-              <span className='text-sm'>{_('开启自动同步（仅在应用运行时）')}</span>
-            </label>
-            <div className='flex items-center gap-2'>
-              <span className='text-sm'>{_('同步间隔（分钟）')}</span>
-              <input
-                className='input input-bordered input-sm w-24'
-                type='number'
-                min={5}
-                max={1440}
-                value={autoSyncIntervalMinutes}
-                onChange={(e) => setAutoSyncIntervalMinutes(Number.parseInt(e.target.value, 10) || 15)}
-                disabled={!autoSyncEnabled}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className='border-base-300 rounded-xl border'>
-          <div className='flex border-b border-base-300'>
-            <button
-              className={clsx(
-                'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
-                activeTab === 'upload' ? 'border-b-2 border-base-content text-base-content' : 'text-base-content/60',
-              )}
-              onClick={() => setActiveTab('upload')}
-            >
-              <MdCloudUpload size={18} />
-              {_('上传（本地）')}
-            </button>
-            <button
-              className={clsx(
-                'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
-                activeTab === 'download'
-                  ? 'border-b-2 border-base-content text-base-content'
-                  : 'text-base-content/60',
-              )}
-              onClick={() => setActiveTab('download')}
-            >
-              <MdCloudDownload size={18} />
-              {_('下载（云端）')}
-            </button>
-            <button
-              className={clsx(
-                'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
-                activeTab === 'logs' ? 'border-b-2 border-base-content text-base-content' : 'text-base-content/60',
-              )}
-              onClick={() => setActiveTab('logs')}
-            >
-              {_('同步日志')}
-            </button>
-            <button
-              className={clsx(
-                'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium',
-                activeTab === 'profiles' ? 'border-b-2 border-base-content text-base-content' : 'text-base-content/60',
-              )}
-              onClick={() => setActiveTab('profiles')}
-            >
-              {_('配置列表')}
-            </button>
-          </div>
-
-          {activeTab === 'upload' && (
-            <div className='h-72 overflow-y-auto p-2'>
-              <div className='flex items-center justify-between px-2 pb-2'>
-                <div className='text-base-content/60 text-xs'>{_('本地书籍')}</div>
-                <input
-                  className='input input-bordered input-sm w-56'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={_('搜索')}
-                />
-              </div>
-              <ul className='space-y-1'>
-                {filteredLocalBooks.map((b) => {
-                  const selected = selectedUploadHashes.has(b.hash);
-                  return (
-                    <li
-                      key={b.hash}
-                      className='hover:bg-base-200 flex cursor-pointer items-center justify-between rounded p-2'
-                      onClick={() => {
-                        setSelectedUploadHashes((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(b.hash)) next.delete(b.hash);
-                          else next.add(b.hash);
-                          return next;
-                        });
-                      }}
-                    >
-                      <div className='flex min-w-0 items-center gap-3'>
-                        <input type='checkbox' className='checkbox checkbox-sm' readOnly checked={selected} />
-                        <span className='truncate text-sm'>{b.title}</span>
-                      </div>
-                      <div className='text-base-content/50 text-xs'>{b.format}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {activeTab === 'download' && (
-            <div className='h-72 overflow-y-auto p-2'>
-              <div className='flex flex-col gap-2 px-2 pb-2 sm:flex-row sm:items-center sm:justify-between'>
-                <div className='min-w-0'>
-                  <div className='text-base-content/70 text-xs font-medium'>{_('云端书籍')}</div>
-                  <div className='text-base-content/60 break-words text-[11px] leading-5 sm:text-xs'>
-                    {remoteCountInfo
-                      ? `${_('目录')} ${remoteCountInfo.dirCount} · ${_('清单')} ${remoteCountInfo.libraryCount}`
-                      : ''}
-                  </div>
-                </div>
-                <div className='flex w-full items-center gap-2 sm:w-auto'>
-                  <input
-                    className='input input-bordered input-sm w-full sm:w-56'
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={_('搜索')}
-                  />
-                  <button className='btn btn-ghost btn-xs' onClick={() => loadRemoteBooks()}>
-                    {_('刷新')}
-                  </button>
-                </div>
-              </div>
-              <ul className='space-y-1'>
-                {filteredRemoteBooks.map((b) => {
-                  const selected = selectedDownloadHashes.has(b.hash);
-                  return (
-                    <li
-                      key={b.hash}
-                      className='hover:bg-base-200 flex cursor-pointer items-center justify-between rounded p-2'
-                      onClick={() => {
-                        setSelectedDownloadHashes((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(b.hash)) next.delete(b.hash);
-                          else next.add(b.hash);
-                          return next;
-                        });
-                      }}
-                    >
-                      <div className='flex min-w-0 items-center gap-3'>
-                        <input type='checkbox' className='checkbox checkbox-sm' readOnly checked={selected} />
-                        <span className='truncate text-sm'>{b.title}</span>
-                      </div>
-                      <div className='text-base-content/50 text-xs'>{b.format || ''}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {activeTab === 'logs' && (
-            <div className='h-72 overflow-y-auto p-3'>
-              <div className='flex items-center justify-between pb-2'>
-                <div className='text-base-content/60 text-xs'>{_('最多保留 500 条记录')}</div>
-                <div className='flex items-center gap-2'>
-                  <button className='btn btn-ghost btn-xs' onClick={clearLogs}>
-                    {_('清空')}
-                  </button>
-                  <button
-                    className='btn btn-ghost btn-xs'
-                    onClick={async () => {
-                      if (!appService) return;
-                      const ok = await appService.saveFile(
-                        'webdav-sync-log.json',
-                        JSON.stringify(logs, null, 2),
-                        'application/json',
-                      );
-                      if (ok) showToast(_('日志已导出'), 'success');
-                    }}
-                  >
-                    {_('导出')}
-                  </button>
-                </div>
-              </div>
-              <div className='space-y-2'>
-                {logs.map((l) => (
-                  <div key={l.id} className='border-base-300 rounded-lg border p-2 text-sm'>
-                    <div className='flex items-center justify-between gap-2'>
-                      <div className='truncate'>{l.path}</div>
-                      <div className='text-base-content/60 text-xs'>{formatDateTime(l.timestamp)}</div>
-                    </div>
-                    <div className='text-base-content/60 flex items-center justify-between pt-1 text-xs'>
-                      <span>
-                        {l.direction === 'upload' ? _('上传') : _('下载')} · {l.status}
-                      </span>
-                      <span className='truncate'>{l.message || ''}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'profiles' && (
-            <div className='h-72 overflow-y-auto p-2'>
-              <div className='flex items-center justify-between gap-2 px-2 pb-2'>
-                <div className='text-base-content/60 text-xs'>{_('已保存配置')}</div>
-                <div className='flex items-center gap-2'>
-                  <button className='btn btn-ghost btn-xs' onClick={createProfile}>
-                    {_('新增')}
-                  </button>
-                  <button
-                    className='btn btn-ghost btn-xs'
-                    onClick={() => {
-                      if (!selectedProfile) return;
-                      setEditing(selectedProfile);
-                      nameInputRef.current?.focus();
-                    }}
-                    disabled={!selectedProfile}
-                  >
-                    {_('编辑')}
-                  </button>
-                  <button className='btn btn-ghost btn-xs' onClick={removeProfile} disabled={!selectedProfile}>
-                    {_('删除')}
-                  </button>
-                  <button
-                    className='btn btn-ghost btn-xs'
-                    onClick={() => {
-                      if (!selectedProfile) return;
-                      setActiveProfileId(selectedProfile.id);
-                      showToast(_('已设为默认'), 'success');
-                    }}
-                    disabled={!selectedProfile}
-                  >
-                    {_('设为默认')}
-                  </button>
-                </div>
-              </div>
-              <ul className='space-y-1'>
-                {profiles.map((p) => {
-                  const isActive = p.id === activeProfileId;
-                  return (
-                    <li
-                      key={p.id}
-                      className={clsx(
-                        'flex cursor-pointer items-center justify-between gap-3 rounded p-2',
-                        isActive ? 'bg-base-200' : 'hover:bg-base-200',
-                      )}
-                      onClick={() => {
-                        setActiveProfileId(p.id);
-                        setEditing(p);
-                      }}
-                    >
-                      <div className='min-w-0'>
-                        <div className='flex items-center gap-2'>
-                          <span className='truncate text-sm font-medium'>{p.name}</span>
-                          {isActive ? <span className='badge badge-primary badge-xs'>{_('默认')}</span> : null}
-                        </div>
-                        <div className='text-base-content/60 truncate text-xs'>{formatServerAddress(p.serverUrl)}</div>
-                      </div>
-                      <div className='text-base-content/60 text-xs'>
-                        {p.lastSyncAt ? formatDateTime(p.lastSyncAt) : _('尚未同步')}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          <div className='border-base-300 bg-base-200/30 border-t p-4'>
-            {isSyncing && (
-              <div className='mb-3'>
-                <div className='flex items-center justify-between text-xs'>
-                  <span className='text-base-content/70'>{progress?.currentPath || ''}</span>
-                  <span className='text-base-content/70'>{progressPercent}%</span>
-                </div>
-                <div className='bg-base-300 mt-1 h-2 w-full overflow-hidden rounded-full'>
-                  <div className='bg-primary h-full transition-all' style={{ width: `${progressPercent}%` }} />
-                </div>
-              </div>
-            )}
-
-            <div className='grid grid-cols-2 gap-3'>
-              <button
-                className='btn btn-primary w-full'
-                disabled={isSyncing || selectedUploadHashes.size === 0}
-                onClick={() => startSync('upload')}
-              >
-                <MdCloudUpload size={18} />
-                {_('上传选中书籍')}
-              </button>
-              <button
-                className='btn btn-primary w-full'
-                disabled={isSyncing || selectedDownloadHashes.size === 0}
-                onClick={() => startSync('download')}
-              >
-                <MdCloudDownload size={18} />
-                {_('下载选中书籍')}
-              </button>
-            </div>
-
-            <div className='mt-3 flex items-center justify-between'>
-              <button className='btn btn-ghost btn-sm' onClick={togglePause} disabled={!isSyncing}>
-                {isPaused ? <MdPlayArrow size={18} /> : <MdPause size={18} />}
-                {isPaused ? _('恢复') : _('暂停')}
-              </button>
-              <button
-                className='btn btn-ghost btn-sm'
-                onClick={() => {
-                  cancelRef.current = true;
-                  showToast(_('已请求停止，当前任务完成后将退出'), 'info');
-                }}
-                disabled={!isSyncing}
-              >
-                {_('停止')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {content}
     </Dialog>
   );
 };

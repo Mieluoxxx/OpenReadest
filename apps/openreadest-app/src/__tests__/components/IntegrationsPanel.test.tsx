@@ -5,16 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import IntegrationsPanel from '@/components/settings/IntegrationsPanel';
 import { useWebDavStore } from '@/store/webdavStore';
 
-const { setWebDavCenterVisibleMock } = vi.hoisted(() => ({
-  setWebDavCenterVisibleMock: vi.fn(),
-}));
-
 vi.mock('@/hooks/useTranslation', () => ({
   useTranslation: () => (key: string) => key,
 }));
 
 vi.mock('@/app/library/components/WebDavCenterWindow', () => ({
-  setWebDavCenterVisible: setWebDavCenterVisibleMock,
+  default: () => <div data-testid='webdav-inline-form' />,
 }));
 
 const PROFILES_KEY = 'readest_webdav_profiles_v1';
@@ -34,7 +30,6 @@ const activeProfile = {
 
 beforeEach(() => {
   localStorage.clear();
-  setWebDavCenterVisibleMock.mockReset();
   useWebDavStore.setState({
     isWebDavCenterOpen: false,
     activeTab: 'upload',
@@ -55,7 +50,7 @@ afterEach(() => {
 });
 
 describe('IntegrationsPanel', () => {
-  it('shows the unconfigured WebDAV entry and opens the existing center', () => {
+  it('opens the WebDAV detail view with its configuration form inline', () => {
     render(<IntegrationsPanel />);
 
     expect(screen.getByText('Cloud Sync')).toBeTruthy();
@@ -64,8 +59,14 @@ describe('IntegrationsPanel', () => {
 
     fireEvent.click(webDavButton);
 
-    expect(setWebDavCenterVisibleMock).toHaveBeenCalledTimes(1);
-    expect(setWebDavCenterVisibleMock).toHaveBeenCalledWith(true);
+    expect(screen.getByText('Integrations')).toBeTruthy();
+    const integrationsButton = screen.getByText('Integrations');
+    expect(integrationsButton.closest('h2')?.classList.contains('font-medium')).toBe(true);
+    expect(integrationsButton.closest('h2')?.classList.contains('text-2xl')).toBe(false);
+    expect(screen.getByTestId('webdav-inline-form')).toBeTruthy();
+    expect(
+      screen.queryByText('Configure WebDAV cloud sync for your library and reading progress.'),
+    ).toBeNull();
   });
 
   it('shows the active persisted profile name', () => {

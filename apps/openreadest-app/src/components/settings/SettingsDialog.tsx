@@ -131,8 +131,8 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     if (!container) return;
 
     const checkButtonWidths = () => {
-      const threshold = (container.clientWidth - 64) * 0.22;
-      const hideLabel = Array.from(container.querySelectorAll('button')).some((button) => {
+      const buttons = Array.from(container.querySelectorAll('button'));
+      const fullWidths = buttons.map((button) => {
         const labelSpan = button.querySelector('span');
         const labelText = labelSpan?.textContent || '';
         const clone = button.cloneNode(true) as HTMLButtonElement;
@@ -147,9 +147,13 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
         document.body.appendChild(clone);
         const fullWidth = clone.scrollWidth;
         document.body.removeChild(clone);
-        return fullWidth > threshold;
+        return fullWidth;
       });
-      setShowAllTabLabels(!hideLabel);
+      const gap = Number.parseFloat(getComputedStyle(container).columnGap) || 0;
+      const totalWidth =
+        fullWidths.reduce((sum, width) => sum + width, 0) +
+        Math.max(0, fullWidths.length - 1) * gap;
+      setShowAllTabLabels(totalWidth <= container.clientWidth);
     };
 
     checkButtonWidths();
@@ -231,24 +235,22 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
               ))}
             </div>
             <div className='flex h-full items-center justify-end gap-x-2'>
-              {activePanel !== 'Integration' && (
-                <Dropdown
-                  label={_('Settings Menu')}
-                  className='dropdown-bottom dropdown-end'
-                  buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0 flex items-center justify-center'
-                  toggleButton={<PiDotsThreeVerticalBold />}
-                >
-                  <DialogMenu
-                    activePanel={activePanel}
-                    onReset={handleResetCurrentPanel}
-                    resetLabel={
-                      currentPanel
-                        ? _('Reset {{settings}}', { settings: currentPanel.label })
-                        : undefined
-                    }
-                  />
-                </Dropdown>
-              )}
+              <Dropdown
+                label={_('Settings Menu')}
+                className='dropdown-bottom dropdown-end'
+                buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0 flex items-center justify-center'
+                toggleButton={<PiDotsThreeVerticalBold />}
+              >
+                <DialogMenu
+                  activePanel={activePanel}
+                  onReset={handleResetCurrentPanel}
+                  resetLabel={
+                    currentPanel
+                      ? _('Reset {{settings}}', { settings: currentPanel.label })
+                      : undefined
+                  }
+                />
+              </Dropdown>
               <button
                 onClick={handleClose}
                 aria-label={_('Close')}
