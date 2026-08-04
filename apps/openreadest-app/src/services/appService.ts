@@ -865,7 +865,7 @@ export abstract class BaseAppService implements AppService {
   private async loadJSONFile(
     path: string,
     base: BaseDir,
-  ): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  ): Promise<{ success: boolean; data?: unknown; error?: unknown; notFound?: boolean }> {
     try {
       const txt = await this.fs.readFile(path, base, 'text');
       if (!txt || typeof txt !== 'string' || txt.trim().length === 0) {
@@ -878,7 +878,14 @@ export abstract class BaseAppService implements AppService {
         return { success: false, error: `JSON parse error: ${parseError}` };
       }
     } catch (error) {
-      return { success: false, error };
+      // Distinguish a missing file (normal first run) from real read failures
+      let notFound = false;
+      try {
+        notFound = !(await this.fs.exists(path, base));
+      } catch {
+        // exists() itself failed; report the original error instead
+      }
+      return { success: false, error, notFound };
     }
   }
 
@@ -892,31 +899,42 @@ export abstract class BaseAppService implements AppService {
   private async safeLoadJSON<T>(filename: string, base: BaseDir, defaultValue: T): Promise<T> {
     const backupFilename = `${filename}.bak`;
 
-    // Try loading main file
     const mainResult = await this.loadJSONFile(filename, base);
     if (mainResult.success) {
       return mainResult.data as T;
     }
 
-    console.warn(`Failed to load ${filename}, attempting backup...`, mainResult.error);
+    // File does not exist yet (first run) — a missing backup is expected, stay silent
+    if (mainResult.notFound) {
+      const backupResult = await this.loadJSONFile(backupFilename, base);
+      if (backupResult.success) {
+        await this.restoreFromBackup(filename, base, backupResult.data);
+        return backupResult.data as T;
+      }
+      return defaultValue;
+    }
 
-    // Try loading backup file
+    // Main file exists but is corrupt or unreadable — warn and try the backup
+    console.warn(`Failed to load ${filename}, attempting backup...`, mainResult.error);
     const backupResult = await this.loadJSONFile(backupFilename, base);
     if (backupResult.success) {
       console.warn(`Loaded from backup: ${backupFilename}`);
-      // Restore the main file from backup
-      try {
-        const backupData = JSON.stringify(backupResult.data, null, 2);
-        await this.fs.writeFile(filename, base, backupData);
-        console.log(`Restored ${filename} from backup`);
-      } catch (error) {
-        console.error(`Failed to restore ${filename} from backup:`, error);
-      }
+      await this.restoreFromBackup(filename, base, backupResult.data);
       return backupResult.data as T;
     }
 
     console.error(`Both ${filename} and ${backupFilename} failed to load`);
     return defaultValue;
+  }
+
+  private async restoreFromBackup(filename: string, base: BaseDir, data: unknown): Promise<void> {
+    try {
+      const backupData = JSON.stringify(data, null, 2);
+      await this.fs.writeFile(filename, base, backupData);
+      console.log(`Restored ${filename} from backup`);
+    } catch (error) {
+      console.error(`Failed to restore ${filename} from backup:`, error);
+    }
   }
 
   /**
