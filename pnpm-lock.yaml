@@ -47,6 +47,9 @@ importers:
 
   apps/openreadest-app:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.735.0
+        version: 3.735.0
       '@choochmeque/tauri-plugin-sharekit-api':
         specifier: ^0.3.0
         version: 0.3.0

@@ -1,9 +1,8 @@
 import { FaGithub } from 'react-icons/fa';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useResponsiveSize } from '@/hooks/useResponsiveSize';
+import { PROJECT_REPOSITORY_LABEL, PROJECT_REPOSITORY_URL } from '@/services/project';
 import Link from './Link';
-
-const GITHUB_REPOSITORY = 'https://github.com/luyishui/OpenReadest';
 
 const SupportLinks = () => {
   const _ = useTranslation();
@@ -13,7 +12,7 @@ const SupportLinks = () => {
     <div className='my-2 flex flex-col items-center gap-3'>
       <p className='text-neutral-content text-sm'>{_('Project Links')}</p>
       <Link
-        href={GITHUB_REPOSITORY}
+        href={PROJECT_REPOSITORY_URL}
         className='bg-base-100 text-base-content hover:bg-base-300 inline-flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors'
         title='GitHub'
         aria-label='GitHub'
@@ -23,7 +22,7 @@ const SupportLinks = () => {
         </span>
         <span className='flex flex-col text-left leading-tight'>
           <span className='text-sm font-medium'>{_('GitHub Homepage')}</span>
-          <span className='text-neutral-content text-xs'>github.com/luyishui/OpenReadest</span>
+          <span className='text-neutral-content text-xs'>{PROJECT_REPOSITORY_LABEL}</span>
         </span>
       </Link>
     </div>

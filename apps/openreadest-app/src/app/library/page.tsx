@@ -67,8 +67,8 @@ import DropIndicator from '@/components/DropIndicator';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import ModalPortal from '@/components/ModalPortal';
 import TransferQueuePanel from './components/TransferQueuePanel';
-import WebDavAutoSyncRunner from './components/WebDavAutoSyncRunner';
-import WebDavCenterWindow from './components/WebDavCenterWindow';
+import CloudAutoSyncRunner from './components/CloudAutoSyncRunner';
+import CloudSyncCenter from './components/CloudSyncCenter';
 
 const LEGACY_DATA_PROMPT_SESSION_KEY = 'openreadest:legacy-data-prompted';
 
@@ -913,12 +913,12 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
           <TransferQueuePanel />
         </ModalPortal>
       )}
-      <WebDavAutoSyncRunner />
+      <CloudAutoSyncRunner />
       <AboutWindow />
       <UpdateWindow />
       <MigrateDataWindow />
       {isSettingsDialogOpen && <SettingsDialog bookKey={''} />}
-      <WebDavCenterWindow />
+      <CloudSyncCenter />
       {showCatalogManager && <CatalogDialog onClose={handleDismissOPDSDialog} />}
       <Toast />
     </div>

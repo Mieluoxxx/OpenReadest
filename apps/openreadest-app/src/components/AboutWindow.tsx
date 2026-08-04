@@ -1,10 +1,11 @@
-// Copyright (c) 2026 luyishui
+// Copyright (c) 2026 Morgan Woods
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useEnv } from '@/context/EnvContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { parseWebViewInfo } from '@/utils/ua';
 import { getAppVersion } from '@/utils/version';
+import { PROJECT_COPYRIGHT, PROJECT_NAME } from '@/services/project';
 import Dialog from './Dialog';
 import Link from './Link';
 import SupportLinks from './SupportLinks';
@@ -22,12 +23,10 @@ export const setAboutDialogVisible = (visible: boolean) => {
 export const AboutWindow = () => {
   const _ = useTranslation();
   const { appService } = useEnv();
-  const [browserInfo, setBrowserInfo] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const browserInfo = parseWebViewInfo(appService);
 
   useEffect(() => {
-    setBrowserInfo(parseWebViewInfo(appService));
-
     const handleCustomEvent = (event: CustomEvent) => {
       setIsOpen(event.detail.visible);
     };
@@ -42,7 +41,6 @@ export const AboutWindow = () => {
         el.removeEventListener('setDialogVisibility', handleCustomEvent as EventListener);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleClose = () => {
@@ -53,16 +51,16 @@ export const AboutWindow = () => {
     <Dialog
       id='about_window'
       isOpen={isOpen}
-      title={_('About OpenReadest')}
+      title={_(`About ${PROJECT_NAME}`)}
       onClose={handleClose}
       boxClassName='sm:!w-[480px] sm:!max-w-screen-sm sm:h-auto'
     >
       {isOpen && (
         <div className='about-content flex flex-col gap-5 px-6 py-5'>
           <div className='flex flex-col items-center gap-3 text-center'>
-            <Image src='/icon.png' alt='OpenReadest Logo' className='h-20 w-20' width={80} height={80} />
+            <Image src='/icon.png' alt={`${PROJECT_NAME} Logo`} className='h-20 w-20' width={80} height={80} />
             <div className='select-text space-y-1'>
-              <h2 className='text-2xl font-bold'>OpenReadest</h2>
+              <h2 className='text-2xl font-bold'>{PROJECT_NAME}</h2>
               <p className='text-neutral-content text-sm'>
                 {_('Version {{version}}', { version: getAppVersion() })}
               </p>
@@ -72,10 +70,10 @@ export const AboutWindow = () => {
 
           <div className='bg-base-200 flex flex-col gap-3 rounded-2xl p-4 text-sm' dir='ltr'>
             <p className='text-base-content/80'>
-              {_('OpenReadest is an independent fork and continued re-development of Readest.')}
+              {_(`${PROJECT_NAME} is an independent fork and continued re-development of Readest.`)}
             </p>
             <p className='text-base-content/80'>
-              {_('Copyright (c) 2026 luyishui. Based on Readest, originally developed by Bilingify LLC.')}
+              {_(PROJECT_COPYRIGHT)}
             </p>
             <p className='text-base-content/80'>
               {_('License')}:{' '}

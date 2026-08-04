@@ -1,81 +1,96 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import IntegrationsPanel from '@/components/settings/IntegrationsPanel';
-import { useWebDavStore } from '@/store/webdavStore';
+import { CLOUD_SYNC_STORAGE_KEY, useCloudSyncStore } from '@/store/cloudSyncStore';
+import { CloudProfile } from '@/services/cloud/models';
 
 vi.mock('@/hooks/useTranslation', () => ({
-  useTranslation: () => (key: string) => key,
+  useTranslation: () => (key: string, values?: { count?: number }) =>
+    values?.count === undefined ? key : key.replace('{{count}}', String(values.count)),
 }));
 
-vi.mock('@/app/library/components/WebDavCenterWindow', () => ({
-  default: () => <div data-testid='webdav-inline-form' />,
+vi.mock('@/app/library/components/CloudSyncCenter', () => ({
+  default: ({ provider }: { provider: string }) => (
+    <div data-testid='cloud-sync-center'>{provider}</div>
+  ),
 }));
 
-const PROFILES_KEY = 'readest_webdav_profiles_v1';
-const ACTIVE_PROFILE_KEY = 'readest_webdav_active_profile_v1';
-
-const activeProfile = {
-  id: 'work-dav',
+const webdavProfile: CloudProfile = {
+  id: 'dav',
   name: 'WorkDAV',
-  serverUrl: 'https://dav.example.com',
-  remotePath: '/books',
-  username: 'reader',
-  password: 'secret',
-  allowInsecureHttp: false,
-  allowInsecureTls: false,
-  conflictStrategy: 'manual' as const,
+  provider: 'webdav',
+  conflictStrategy: 'manual',
+  config: {
+    serverUrl: 'https://dav.example.com',
+    remotePath: '/books',
+    username: 'reader',
+    password: 'secret',
+  },
+};
+
+const s3Profile: CloudProfile = {
+  id: 's3',
+  name: 'Archive',
+  provider: 's3',
+  conflictStrategy: 'manual',
+  config: {
+    endpoint: 'https://s3.example.com',
+    region: 'auto',
+    accessKeyId: 'access',
+    secretAccessKey: 'secret',
+    bucketName: 'books',
+    remotePrefix: '',
+  },
 };
 
 beforeEach(() => {
   localStorage.clear();
-  useWebDavStore.setState({
-    isWebDavCenterOpen: false,
-    activeTab: 'upload',
+  useCloudSyncStore.setState({
     profiles: [],
     activeProfileId: null,
+    logs: [],
+    autoSyncEnabled: false,
+    autoSyncIntervalMinutes: 15,
+    isCloudSyncCenterOpen: false,
+    centerProvider: 'webdav',
+    activeTab: 'upload',
     isSyncing: false,
     isPaused: false,
     progress: null,
     lastSuccessAt: null,
-    logs: [],
-    autoSyncEnabled: false,
-    autoSyncIntervalMinutes: 15,
   });
 });
-
-afterEach(() => {
-  cleanup();
-});
+afterEach(cleanup);
 
 describe('IntegrationsPanel', () => {
-  it('opens the WebDAV detail view with its configuration form inline', () => {
+  it('shows WebDAV and S3 as parallel cloud sync entries', () => {
     render(<IntegrationsPanel />);
-
-    expect(screen.getByText('Cloud Sync')).toBeTruthy();
-    const webDavButton = screen.getByRole('button', { name: 'WebDAV' });
-    expect(screen.getByText('Not configured')).toBeTruthy();
-
-    fireEvent.click(webDavButton);
-
-    expect(screen.getByText('Integrations')).toBeTruthy();
-    const integrationsButton = screen.getByText('Integrations');
-    expect(integrationsButton.closest('h2')?.classList.contains('font-medium')).toBe(true);
-    expect(integrationsButton.closest('h2')?.classList.contains('text-2xl')).toBe(false);
-    expect(screen.getByTestId('webdav-inline-form')).toBeTruthy();
-    expect(
-      screen.queryByText('Configure WebDAV cloud sync for your library and reading progress.'),
-    ).toBeNull();
+    expect(screen.getByRole('button', { name: 'WebDAV' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'S3' })).toBeTruthy();
+    expect(screen.getAllByText('Not configured')).toHaveLength(2);
   });
 
-  it('shows the active persisted profile name', () => {
-    localStorage.setItem(PROFILES_KEY, JSON.stringify([activeProfile]));
-    localStorage.setItem(ACTIVE_PROFILE_KEY, activeProfile.id);
-
+  it('opens the shared center filtered to the selected provider', () => {
     render(<IntegrationsPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'S3' }));
+    expect(screen.getByTestId('cloud-sync-center').textContent).toBe('s3');
+    expect(screen.getByText('Integrations')).toBeTruthy();
+  });
 
-    expect(screen.getByText(activeProfile.name)).toBeTruthy();
-    expect(screen.queryByText('Not configured')).toBeNull();
+  it('shows the active profile and configured count per provider', () => {
+    localStorage.setItem(
+      CLOUD_SYNC_STORAGE_KEY,
+      JSON.stringify({
+        profiles: [webdavProfile, s3Profile],
+        activeProfileId: s3Profile.id,
+        logs: [],
+        autoSyncEnabled: false,
+        autoSyncIntervalMinutes: 15,
+      }),
+    );
+    render(<IntegrationsPanel />);
+    expect(screen.getByText('正在使用 · Archive')).toBeTruthy();
+    expect(screen.getByText('已配置 1 个')).toBeTruthy();
   });
 });

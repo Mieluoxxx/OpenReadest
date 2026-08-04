@@ -4,6 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { eventDispatcher } from '@/utils/event';
 import { openExternalUrl } from '@/utils/open';
 import { getAppVersion } from '@/utils/version';
+import { PROJECT_NAME, PROJECT_RELEASES_URL, PROJECT_REPOSITORY_URL } from '@/services/project';
 import Dialog from './Dialog';
 
 const LOCAL_UPDATE_CONFIG_URL = '/updates/config.json';
@@ -20,9 +21,9 @@ type UpdateConfig = {
 
 const DEFAULT_UPDATE_CONFIG: Required<UpdateConfig> = {
   remoteConfigUrl: '',
-  eyebrow: 'OpenReadest Update',
-  projectHomepage: 'https://github.com/luyishui/OpenReadest',
-  releaseNotesUrl: 'https://github.com/luyishui/OpenReadest/releases',
+  eyebrow: `${PROJECT_NAME} Update`,
+  projectHomepage: PROJECT_REPOSITORY_URL,
+  releaseNotesUrl: PROJECT_RELEASES_URL,
   channelLabel: 'GitHub Pages / GitHub Releases',
   summary: '这里会同步 OpenReadest 的版本动向，也给你留好项目主页和最新版本入口。',
   detail: '如果一时打不开或加载不出来，多半是 GitHub 网络波动，换个时间或者稍后再试就好。',

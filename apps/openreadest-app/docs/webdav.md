@@ -36,7 +36,7 @@
     - `cover.png`
     - `config.json`
 - `Readest/System/`
-  - `webdav-sync-state.json`（同步状态与基线，用于增量与冲突检测）
+  - `sync-state.json`（统一云同步状态与基线，用于增量与冲突检测）
 
 ## 增量同步与冲突
 - 增量判断：
@@ -58,14 +58,18 @@
 - `WebDavClient.mkcol/delete/move/copy`
 
 ### 同步引擎
-位置：`src/services/webdav/sync/engine.ts`
-- `syncWebDavSelection(appService, profile, { books, includeLibrary, ... }, callbacks, control)`
+位置：`src/services/cloud/sync/engine.ts`
+- `syncCloudSelection(appService, profile, remoteStore, { books, includeLibrary, ... }, callbacks, control)`
   - callbacks：进度与日志回调
   - control：暂停/恢复与停止（按“文件粒度”生效）
+
+### 远端适配器
+位置：`src/services/cloud/remote/`
+- `WebDavObjectStore` 将统一对象操作映射到 WebDAV client
+- `S3ObjectStore` 将统一对象操作映射到 AWS SDK v3
 
 ## 测试
 只运行 WebDAV 相关测试：
 ```bash
-pnpm --filter @openreadest/app exec vitest run src/__tests__/webdav/propfind-parse.test.ts src/__tests__/webdav/sync.integration.test.ts
+pnpm --filter @openreadest/app exec vitest run src/__tests__/webdav/propfind-parse.test.ts src/__tests__/webdav/sync.integration.test.ts src/services/cloud/sync/engine.test.ts
 ```
-

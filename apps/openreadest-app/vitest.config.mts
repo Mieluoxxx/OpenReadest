@@ -9,7 +9,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/store/webdavStore.ts', 'src/services/webdav/profileName.ts'],
+      include: ['src/store/cloudSyncStore.ts', 'src/services/cloud/profileName.ts'],
       thresholds: {
         lines: 80,
         functions: 80,

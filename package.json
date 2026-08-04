@@ -1,7 +1,7 @@
 {
   "name": "@openreadest/monorepo",
   "private": true,
-  "repository": "luyishui/openreadest",
+  "repository": "Mieluoxxx/openreadest",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "tauri": "pnpm --filter @openreadest/app tauri",

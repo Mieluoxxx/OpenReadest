@@ -17,6 +17,7 @@ import { KOSyncSettings, ReadSettings, SystemSettings } from '@/types/settings';
 import { UserStorageQuota, UserDailyTranslationQuota } from '@/types/quota';
 import { getDefaultMaxBlockSize, getDefaultMaxInlineSize } from '@/utils/config';
 import { stubTranslation as _ } from '@/utils/misc';
+import { PROJECT_RELEASES_URL } from '@/services/project';
 
 export const DATA_SUBDIR = 'Readest';
 export const LOCAL_BOOKS_SUBDIR = `${DATA_SUBDIR}/Books`;
@@ -637,7 +638,7 @@ export const CJK_FONTS_PATTENS = new RegExp(
 
 export const BOOK_IDS_SEPARATOR = '+';
 
-export const DOWNLOAD_READEST_URL = '';
+export const DOWNLOAD_READEST_URL = PROJECT_RELEASES_URL;
 
 export const READEST_WEB_BASE_URL = '';
 export const READEST_NODE_BASE_URL = '';

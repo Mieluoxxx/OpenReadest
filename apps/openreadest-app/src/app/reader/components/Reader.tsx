@@ -29,7 +29,7 @@ import { Toast } from '@/components/Toast';
 import { getLocale } from '@/utils/misc';
 import { initDayjs } from '@/utils/time';
 import ReaderContent from './ReaderContent';
-import WebDavCenterWindow from '@/app/library/components/WebDavCenterWindow';
+import CloudSyncCenter from '@/app/library/components/CloudSyncCenter';
 
 /*
 Z-Index Layering Guide:
@@ -169,7 +169,7 @@ const Reader: React.FC<{ ids?: string }> = ({ ids }) => {
         <ReaderContent ids={ids} settings={settings} />
         <AboutWindow />
         <UpdateWindow />
-        <WebDavCenterWindow />
+        <CloudSyncCenter />
         <KOSyncSettingsWindow />
         <ProofreadRulesManager />
         <Toast />

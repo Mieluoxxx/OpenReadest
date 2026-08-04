@@ -11,6 +11,15 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     License: 'License',
     'Project Links': 'Project Links',
     'GitHub Homepage': 'GitHub Homepage',
+    正在使用: 'In use',
+    '已配置 {{count}} 个': '{{count}} configured',
+    'S3 设置与同步': 'S3 settings and sync',
+    新建配置: 'New profile',
+    '显示 Secret Key': 'Show Secret Key',
+    '隐藏 Secret Key': 'Hide Secret Key',
+    'HTTP 连接不会加密对象内容，仍要继续吗？':
+      'HTTP does not encrypt object contents. Continue anyway?',
+    '同步失败，请查看日志': 'Sync failed. Check the sync log.',
     检查更新: 'Check for Updates',
     'OpenReadest Update': 'OpenReadest Update',
     '当前版本 {{version}}': 'Current version {{version}}',
@@ -68,8 +77,8 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     'Migration failed: {{error}}': 'Migration failed: {{error}}',
     'OpenReadest is an independent fork and continued re-development of Readest.':
       'OpenReadest is an independent fork and continued re-development of Readest.',
-    'Copyright (c) 2026 luyishui. Based on Readest, originally developed by Bilingify LLC.':
-      'Copyright (c) 2026 luyishui. Based on Readest, originally developed by Bilingify LLC.',
+    'Copyright (c) 2026 Morgan Woods. Based on Readest, originally developed by Bilingify LLC.':
+      'Copyright (c) 2026 Morgan Woods. Based on Readest, originally developed by Bilingify LLC.',
     'Get Help from the Readest Community': 'Get Help from the OpenReadest Community',
     'Need help? Contact our support team at support@readest.com':
       'Need help? Please open an issue in the OpenReadest repository.',
@@ -87,6 +96,15 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     Integrations: '集成',
     'Cloud Sync': '云同步',
     'Not configured': '未配置',
+    正在使用: '正在使用',
+    '已配置 {{count}} 个': '已配置 {{count}} 个',
+    'S3 设置与同步': 'S3 设置与同步',
+    新建配置: '新建配置',
+    '显示 Secret Key': '显示 Secret Key',
+    '隐藏 Secret Key': '隐藏 Secret Key',
+    'HTTP 连接不会加密对象内容，仍要继续吗？':
+      'HTTP 连接不会加密对象内容，仍要继续吗？',
+    '同步失败，请查看日志': '同步失败，请查看日志',
     检查更新: '检查更新',
     'OpenReadest Update': 'OpenReadest Update',
     'OpenReadest 的独立更新源正在接入中。当前阶段先保留独立“检查更新”页面，后续会接上远程版本信息、更新日志和下载分发。':
@@ -141,8 +159,8 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     'Migration failed: {{error}}': '迁移失败：{{error}}',
     'OpenReadest is an independent fork and continued re-development of Readest.':
       'OpenReadest 是基于 Readest 的独立分支与持续再开发版本。',
-    'Copyright (c) 2026 luyishui. Based on Readest, originally developed by Bilingify LLC.':
-      '版权所有 (c) 2026 luyishui。项目基于 Readest，原始版本由 Bilingify LLC 开发。',
+    'Copyright (c) 2026 Morgan Woods. Based on Readest, originally developed by Bilingify LLC.':
+      '版权所有 (c) 2026 Morgan Woods。项目基于 Readest，原始版本由 Bilingify LLC 开发。',
     'Get Help from the Readest Community': '从 OpenReadest 社区获取帮助',
     'Need help? Contact our support team at support@readest.com':
       '需要帮助？请前往 OpenReadest 仓库提交 issue。',
@@ -160,6 +178,15 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     Integrations: '整合',
     'Cloud Sync': '雲端同步',
     'Not configured': '尚未設定',
+    正在使用: '正在使用',
+    '已配置 {{count}} 个': '已設定 {{count}} 個',
+    'S3 设置与同步': 'S3 設定與同步',
+    新建配置: '新增設定',
+    '显示 Secret Key': '顯示 Secret Key',
+    '隐藏 Secret Key': '隱藏 Secret Key',
+    'HTTP 连接不会加密对象内容，仍要继续吗？':
+      'HTTP 連線不會加密物件內容，仍要繼續嗎？',
+    '同步失败，请查看日志': '同步失敗，請查看日誌',
     检查更新: '檢查更新',
     'OpenReadest Update': 'OpenReadest Update',
     'OpenReadest 的独立更新源正在接入中。当前阶段先保留独立“检查更新”页面，后续会接上远程版本信息、更新日志和下载分发。':
@@ -214,8 +241,8 @@ const EXPLICIT_OVERRIDES: Record<string, Record<string, string>> = {
     'Migration failed: {{error}}': '遷移失敗：{{error}}',
     'OpenReadest is an independent fork and continued re-development of Readest.':
       'OpenReadest 是基於 Readest 的獨立分支與持續再開發版本。',
-    'Copyright (c) 2026 luyishui. Based on Readest, originally developed by Bilingify LLC.':
-      '版權所有 (c) 2026 luyishui。此專案基於 Readest，原始版本由 Bilingify LLC 開發。',
+    'Copyright (c) 2026 Morgan Woods. Based on Readest, originally developed by Bilingify LLC.':
+      '版權所有 (c) 2026 Morgan Woods。此專案基於 Readest，原始版本由 Bilingify LLC 開發。',
     'Get Help from the Readest Community': '從 OpenReadest 社群獲取幫助',
     'Need help? Contact our support team at support@readest.com':
       '需要協助？請前往 OpenReadest 倉庫提交 issue。',

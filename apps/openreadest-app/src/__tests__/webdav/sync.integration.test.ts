@@ -2,8 +2,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createMockWebDavServer } from './mockWebDavServer';
 import { createMockAppService } from './mockAppService';
-import { syncWebDavSelection } from '../../services/webdav/sync/engine';
-import { WebDavProfile } from '../../services/webdav/models';
+import { syncCloudSelection } from '../../services/cloud/sync/engine';
+import { WebDavCloudProfile } from '../../services/cloud/models';
+import { WebDavObjectStore } from '../../services/cloud/remote/WebDavObjectStore';
 import { Book } from '../../types/book';
 
 const createBook = (hash: string, title: string): Book => {
@@ -35,21 +36,25 @@ describe('WebDAV sync integration', () => {
     await putBinary('Books', 'hash1/The Alchemist.epub', new Uint8Array([1, 2, 3, 4]));
     await putText('Books', 'hash1/config.json', JSON.stringify({ updatedAt: 1, progress: 0.5 }));
 
-    const profile: WebDavProfile = {
+    const profile: WebDavCloudProfile = {
       id: 'p1',
       name: '测试',
-      serverUrl: webdav.serverUrl,
-      remotePath: '/dav',
-      username: 'u',
-      password: 'p',
-      allowInsecureHttp: true,
+      provider: 'webdav',
       conflictStrategy: 'manual',
+      config: {
+        serverUrl: webdav.serverUrl,
+        remotePath: '/dav',
+        username: 'u',
+        password: 'p',
+        allowInsecureHttp: true,
+      },
     };
 
     const logs: Array<{ path: string; status: string; message?: string }> = [];
-    const result = await syncWebDavSelection(
+    const result = await syncCloudSelection(
       appService,
       profile,
+      new WebDavObjectStore(profile.config),
       { books: [book], includeCovers: false },
       {
         onLog: (l) => logs.push({ path: l.path, status: l.status, message: l.message }),
@@ -61,8 +66,17 @@ describe('WebDAV sync integration', () => {
     expect(remotePaths).toContain('/dav/OpenReadest/Books/library.json');
     expect(remotePaths).toContain('/dav/OpenReadest/Books/hash1/The Alchemist.epub');
     expect(remotePaths).toContain('/dav/OpenReadest/Books/hash1/config.json');
-    expect(remotePaths).toContain('/dav/OpenReadest/System/webdav-sync-state.json');
-    expect(stores.Settings.has('webdav/OpenReadest/webdav-sync-state.json')).toBe(true);
+    expect(remotePaths).toContain('/dav/OpenReadest/System/sync-state.json');
+    expect(stores.Settings.has('cloud-sync/p1/sync-state.json')).toBe(true);
+
+    const second = await syncCloudSelection(
+      appService,
+      profile,
+      new WebDavObjectStore(profile.config),
+      { books: [book], includeCovers: false },
+    );
+    expect(second.completedCount).toBe(0);
+    expect(second.skippedCount).toBeGreaterThan(0);
   });
 
   it('downloads remote files to local when local missing', async () => {
@@ -71,15 +85,18 @@ describe('WebDAV sync integration', () => {
     const { appService, getText } = createMockAppService();
 
     const book = createBook('hash2', 'Dune');
-    const profile: WebDavProfile = {
+    const profile: WebDavCloudProfile = {
       id: 'p1',
       name: '测试',
-      serverUrl: webdav.serverUrl,
-      remotePath: '/dav',
-      username: 'u',
-      password: 'p',
-      allowInsecureHttp: true,
+      provider: 'webdav',
       conflictStrategy: 'manual',
+      config: {
+        serverUrl: webdav.serverUrl,
+        remotePath: '/dav',
+        username: 'u',
+        password: 'p',
+        allowInsecureHttp: true,
+      },
     };
 
     const auth = `Basic ${Buffer.from('u:p', 'utf-8').toString('base64')}`;
@@ -99,10 +116,12 @@ describe('WebDAV sync integration', () => {
       body: JSON.stringify({ updatedAt: 2, progress: 0.1 }),
     });
 
-    const result = await syncWebDavSelection(appService, profile, {
-      books: [book],
-      includeCovers: false,
-    });
+    const result = await syncCloudSelection(
+      appService,
+      profile,
+      new WebDavObjectStore(profile.config),
+      { books: [book], includeCovers: false },
+    );
     expect(result.conflicts.length).toBe(0);
     const libraryText = await getText('Books', 'library.json');
     expect(JSON.parse(libraryText)[0].hash).toBe('hash2');
@@ -118,22 +137,26 @@ describe('WebDAV sync integration', () => {
     await putText('Books', 'library.json', JSON.stringify([book]));
     await putText('Books', 'hash3/config.json', JSON.stringify({ updatedAt: 1, progress: 0.2 }));
 
-    const profileBase: WebDavProfile = {
+    const profileBase: WebDavCloudProfile = {
       id: 'p1',
       name: '测试',
-      serverUrl: webdav.serverUrl,
-      remotePath: '/dav',
-      username: 'u',
-      password: 'p',
-      allowInsecureHttp: true,
+      provider: 'webdav',
       conflictStrategy: 'local',
+      config: {
+        serverUrl: webdav.serverUrl,
+        remotePath: '/dav',
+        username: 'u',
+        password: 'p',
+        allowInsecureHttp: true,
+      },
     };
 
-    await syncWebDavSelection(appService, profileBase, {
-      books: [book],
-      includeCovers: false,
-      includeBookFiles: false,
-    });
+    await syncCloudSelection(
+      appService,
+      profileBase,
+      new WebDavObjectStore(profileBase.config),
+      { books: [book], includeCovers: false, includeBookFiles: false },
+    );
 
     await putText('Books', 'hash3/config.json', JSON.stringify({ updatedAt: 2, progress: 0.3 }));
 
@@ -144,12 +167,13 @@ describe('WebDAV sync integration', () => {
       body: JSON.stringify({ updatedAt: 3, progress: 0.4 }),
     });
 
-    const profileManual: WebDavProfile = { ...profileBase, conflictStrategy: 'manual' };
-    const result = await syncWebDavSelection(appService, profileManual, {
-      books: [book],
-      includeCovers: false,
-      includeBookFiles: false,
-    });
+    const profileManual: WebDavCloudProfile = { ...profileBase, conflictStrategy: 'manual' };
+    const result = await syncCloudSelection(
+      appService,
+      profileManual,
+      new WebDavObjectStore(profileManual.config),
+      { books: [book], includeCovers: false, includeBookFiles: false },
+    );
 
     expect(result.conflicts.length).toBe(1);
     expect(result.conflicts[0]!.path).toContain('Books/hash3/config.json');

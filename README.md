@@ -1,6 +1,6 @@
 # OpenReadest
 
-OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力，并新增或强化 WebDAV 同步能力，用于私有云或自建 WebDAV 场景（坚果云、Nextcloud、群晖、WebDAV NAS 等）。上游项目 Readest： https://github.com/readest/readest 。
+OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力，并新增或强化 WebDAV 与 S3 兼容对象存储同步能力。上游项目 Readest： https://github.com/readest/readest 。
 
 本项目遵循 AGPL-3.0 许可证发布，并保留上游项目与第三方组件的版权和许可证声明。
 
@@ -26,6 +26,7 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 | 批注/书签/进度 | ✅ | ✅ |
 | 多端支持（桌面/移动） | ✅ | ✅ |
 | WebDAV 同步 | 部分/无内置场景 | ✅ 强化 |
+| S3 兼容对象存储同步 | ❌ | ✅ |
 | AI 朗读（无限） | ✅ | ❌ |
 | DeepL 翻译 | ✅ | ❌ |
 
@@ -54,6 +55,15 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 4. 选择同步方向或双向同步并开始。
 
 建议远程目录使用独立目录（如 `/OpenReadest`），避免与其他程序混用。
+
+## S3 配置（简要）
+
+1. 打开 设置 → 集成 → 云同步 → S3。
+2. 填写 Endpoint、Region、Access Key、Secret Key、Bucket Name 和 Remote Prefix。
+3. 执行连接测试后保存。
+4. 选择上传或下载书籍，或启用当前活动配置的自动同步。
+
+支持 AWS S3、MinIO、Cloudflare R2 等 S3 兼容服务。Web 端需要配置 Bucket CORS；详细说明见 [`apps/openreadest-app/docs/s3.md`](apps/openreadest-app/docs/s3.md)。
 
 ## 版权与许可
 
