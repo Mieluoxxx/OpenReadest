@@ -295,6 +295,14 @@ export class WebAppService extends BaseAppService {
 
       await super.runMigrations(lastMigrationVersion);
 
+      if (lastMigrationVersion < 20260804) {
+        try {
+          await this.migrateIndexedDBPrefix();
+        } catch (error) {
+          console.error('Error migrating to version 20260804:', error);
+        }
+      }
+
       if (lastMigrationVersion < this.CURRENT_MIGRATION_VERSION) {
         await this.saveSettings({
           ...settings,
@@ -342,5 +350,30 @@ export class WebAppService extends BaseAppService {
       console.error('Failed to save file:', error);
       return false;
     }
+  }
+
+  private async migrateIndexedDBPrefix(): Promise<void> {
+    console.log('Running migration 20260804: rename IndexedDB key prefix Readest/ -> openreadest/...');
+    const db = await openIndexedDB();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction('files', 'readwrite');
+      const store = transaction.objectStore('files');
+      const request = store.openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const key = cursor.key as string;
+          if (key.startsWith('Readest/')) {
+            const newKey = `openreadest/${key.slice('Readest/'.length)}`;
+            store.put({ ...(cursor.value as object), path: newKey });
+            store.delete(key);
+          }
+          cursor.continue();
+        }
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    console.log('Migration 20260804 completed.');
   }
 }

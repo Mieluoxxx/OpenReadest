@@ -8,6 +8,7 @@ import {
   readDir,
   remove,
   copyFile,
+  rename,
   stat,
   BaseDirectory,
   WriteFileOptions,
@@ -471,6 +472,14 @@ export class NativeAppService extends BaseAppService {
         }
       }
 
+      if (lastMigrationVersion < 20260804) {
+        try {
+          await this.migrateDataSubdirToOpenReadest();
+        } catch (error) {
+          console.error('Error migrating to version 20260804:', error);
+        }
+      }
+
       if (lastMigrationVersion < this.CURRENT_MIGRATION_VERSION) {
         await this.saveSettings({
           ...settings,
@@ -554,5 +563,41 @@ export class NativeAppService extends BaseAppService {
 
     const dirToDelete = await join(rootPath, 'Images', 'Readest');
     await this.deleteDir(dirToDelete, 'None', true);
+  }
+
+  async migrateDataSubdirToOpenReadest() {
+    console.log('Running migration 20260804: move data from Readest/ to openreadest/...');
+    const newRoot = await this.fs.getPrefix('Data');
+    const appDataParent = getDirPath(newRoot);
+    const oldRoot = await join(appDataParent, 'Readest');
+
+    if (!(await this.fs.exists(oldRoot, 'None'))) {
+      return;
+    }
+    await this.fs.createDir(newRoot, 'None', true);
+
+    // readDir is recursive here, so entries are flat file paths. Skip anything
+    // under the legacy `Readest/Readest` nested dir (original Readest app data
+    // that the migration window still offers to import).
+    const entries = await this.fs.readDir(oldRoot, 'None');
+    for (const entry of entries) {
+      if (entry.path === 'Readest' || entry.path.startsWith('Readest/')) {
+        continue;
+      }
+      const src = await join(oldRoot, entry.path);
+      const dst = await join(newRoot, entry.path);
+      await this.fs.createDir(getDirPath(dst), 'None', true);
+      if (await this.fs.exists(dst, 'None')) {
+        continue;
+      }
+      await rename(src, dst);
+      console.log(`Moved ${src} -> ${dst}`);
+    }
+
+    const remaining = await this.fs.readDir(oldRoot, 'None');
+    if (remaining.length === 0) {
+      await this.fs.removeDir(oldRoot, 'None');
+    }
+    console.log('Migration 20260804 completed.');
   }
 }

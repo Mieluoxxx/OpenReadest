@@ -19,7 +19,7 @@ import { getDefaultMaxBlockSize, getDefaultMaxInlineSize } from '@/utils/config'
 import { stubTranslation as _ } from '@/utils/misc';
 import { PROJECT_RELEASES_URL } from '@/services/project';
 
-export const DATA_SUBDIR = 'Readest';
+export const DATA_SUBDIR = 'openreadest';
 export const LOCAL_BOOKS_SUBDIR = `${DATA_SUBDIR}/Books`;
 export const CLOUD_BOOKS_SUBDIR = `${DATA_SUBDIR}/Books`;
 export const LOCAL_FONTS_SUBDIR = `${DATA_SUBDIR}/Fonts`;
