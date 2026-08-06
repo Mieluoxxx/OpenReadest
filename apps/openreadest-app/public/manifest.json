@@ -7,17 +7,12 @@
   "description": "OpenReadest is an open-source eBook reader with local-first reading features and WebDAV synchronization.",
   "icons": [
     {
-      "src": "/icon.png",
+      "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "256x256"
-    },
-    {
-      "src": "/icon.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

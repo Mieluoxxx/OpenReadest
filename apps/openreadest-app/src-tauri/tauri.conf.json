@@ -31,7 +31,7 @@
             "$APPCACHE/**/*",
             "$TEMP/**/*",
             "**/Readest/**/*",
-            "**/OpenReadest/**/*",
+            "**/openreadest/**/*",
             "/private/var/mobile/Containers/Data/Application/**/*"
           ],
           "deny": []
@@ -50,7 +50,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [],
+    "resources": {
+      "resources/macos/Assets.car": "Assets.car"
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"

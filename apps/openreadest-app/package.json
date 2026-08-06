@@ -41,6 +41,7 @@
     "build-win-x86": "dotenv -e ../../.security_keys/.env.tauri.local -- tauri build --target i686-pc-windows-msvc --bundles nsis",
     "build-win-arm64": "dotenv -e ../../.security_keys/.env.tauri.local -- tauri build --target aarch64-pc-windows-msvc --bundles nsis",
     "sync-android-icons": "node scripts/sync-android-icons.mjs",
+    "build-macos-icon": "bash scripts/build-macos-icon.sh",
     "tunnel-web": "powershell -ExecutionPolicy Bypass -File scripts/start-web-tunnel.ps1",
     "build-android-apk": "pnpm sync-android-icons && tauri android build --apk true",
     "build-android-apk-split": "pnpm sync-android-icons && tauri android build --apk true --split-per-abi",

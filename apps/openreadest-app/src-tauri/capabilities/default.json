@@ -18,7 +18,13 @@
       "identifier": "fs:scope-appdata-recursive",
       "allow": [
         {
-          "path": "$APPDATA/OpenReadest/**/*"
+          "path": "$APPDATA/openreadest"
+        },
+        {
+          "path": "$APPDATA/openreadest/**/*"
+        },
+        {
+          "path": "$APPDATA/Readest"
         },
         {
           "path": "$APPDATA/Readest/**/*"
@@ -68,10 +74,10 @@
       "identifier": "fs:scope",
       "allow": [
         {
-          "path": "**/OpenReadest"
+          "path": "**/openreadest"
         },
         {
-          "path": "**/OpenReadest/**/*"
+          "path": "**/openreadest/**/*"
         },
         {
           "path": "**/Readest"
