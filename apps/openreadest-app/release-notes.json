@@ -1,5 +1,13 @@
 {
   "releases": {
+    "1.0.0": {
+      "date": "2026-08-07",
+      "notes": [
+        "Brand: Launched the new OpenReadest identity — black squircle with white open-book mark — applied consistently across Web, desktop, Android and iOS",
+        "macOS: Adopted the native Liquid Glass app icon pipeline on macOS 26+, letting the system apply the icon mask and glass effects",
+        "Data: Renamed the library data directory from Readest to openreadest, with automatic fallback to the legacy path"
+      ]
+    },
     "0.9.98": {
       "date": "2026-01-21",
       "notes": [

@@ -58,6 +58,15 @@
   <launchable type="desktop-id">com.openreadest.app.desktop</launchable>
 
   <releases>
+    <release version="1.0.0" date="2026-08-07">
+      <description>
+        <ul>
+          <li>Launched the new OpenReadest identity with the black squircle and white open-book mark across Web, desktop, Android and iOS.</li>
+          <li>Adopted the native macOS Liquid Glass app icon on macOS 26+, letting the system apply the icon mask and glass effects.</li>
+          <li>Renamed the library data directory from Readest to openreadest, with automatic fallback to the legacy path.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-03-06">
       <description>
         <ul>
