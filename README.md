@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="new_logo/openreadest-icon.svg" alt="OpenReadest" width="160" />
+</p>
+
 # OpenReadest
 
 OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力，并新增或强化 WebDAV 与 S3 兼容对象存储同步能力。上游项目 Readest： https://github.com/readest/readest 。
@@ -11,7 +15,7 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 为了避免混淆，特此说明：
 1. **独立性**：本项目与原项目 `readest/readest` 是两个相互独立的项目，拥有不同的更新计划和功能路线。
 2. **功能差异**：本项目在原项目基础上增加了特定的新功能，这些修改仅代表本项目的方向。
-3. **问题反馈**：如果你在使用 *本 Fork 版本* 时遇到问题或有功能建议，请直接在本仓库 (`luyishui/OpenReadest`) 提出，不要打扰原项目的开发者。
+3. **问题反馈**：如果你在使用 *本 Fork 版本* 时遇到问题或有功能建议，请直接在本仓库 (`Mieluoxxx/OpenReadest`) 提出，不要打扰原项目的开发者。
 4. **尊重原项目**：原项目的所有荣誉归原作者所有。本项目严格遵循原项目的开源协议 (AGPL-3.0) 进行分发。
 
 感谢原项目 [Readest](https://github.com/readest/readest) 提供的优秀基础！
@@ -34,13 +38,16 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 
 | 能力 | 原版 Readest | OpenReadest |
 |:---|:---:|:---:|
-| EPUB/PDF/FB2/MOBI/CBZ 阅读 | ✅ | ✅ |
+| EPUB/PDF/FB2/MOBI/AZW/CBZ 阅读 | ✅ | ✅ |
 | 批注/书签/进度 | ✅ | ✅ |
 | 多端支持（桌面/移动） | ✅ | ✅ |
-| WebDAV 同步 | 部分/无内置场景 | ✅ 强化 |
+| WebDAV 同步 | 部分 | ✅ 强化 |
 | S3 兼容对象存储同步 | ❌ | ✅ |
-| AI 朗读（无限） | ✅ | ❌ |
-| DeepL 翻译 | ✅ | ❌ |
+| 朗读（TTS） | ✅ | ✅（本地 Edge TTS） |
+| 云端 AI 朗读（无限） | ✅ | ❌ |
+| 翻译 | ✅（含 DeepL） | ✅（Google / Azure / Yandex） |
+| 账号 / 云空间 / 付费订阅 | ✅ | ❌ |
+| 遥测与错误上报 | 有 | ❌ |
 
 > **提示：** 如需体验完整功能（AI 朗读、DeepL 翻译等），建议使用原版 Readest：https://github.com/readest/readest
 
@@ -76,6 +83,16 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 4. 选择上传或下载书籍，或启用当前活动配置的自动同步。
 
 支持 AWS S3、MinIO、Cloudflare R2 等 S3 兼容服务。Web 端需要配置 Bucket CORS；详细说明见 [`apps/openreadest-app/docs/s3.md`](apps/openreadest-app/docs/s3.md)。
+
+## 贡献方式
+
+欢迎任何形式的贡献！参与前请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解社区准则。
+
+- **反馈问题或建议**：在本仓库 [Issues](https://github.com/Mieluoxxx/OpenReadest/issues) 提出，描述问题时请附上版本号、平台与复现步骤
+- **提交代码**：Fork 本仓库后提交 Pull Request；建议先创建 Issue 对齐方向，避免重复劳动
+- **本地构建**：仓库结构与构建说明见 [CONTRIBUTING.md](CONTRIBUTING.md)
+
+> 本项目为基于 Readest 的独立 Fork，请将问题反馈提交到本仓库，避免打扰原项目开发者。
 
 ## 版权与许可
 
