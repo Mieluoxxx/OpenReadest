@@ -1,299 +1,94 @@
-name: Release OpenReadest
+name: Release
 
+# CD：推送 v* 标签时，自动构建各平台基础安装包并发布到 GitHub Release。
 on:
-  workflow_dispatch:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
-  get-release:
-    permissions:
-      contents: write
+  prepare-release:
     runs-on: ubuntu-latest
-    outputs:
-      release_id: ${{ steps.get-release.outputs.release_id }}
-      release_tag: ${{ steps.get-release.outputs.release_tag }}
-      release_note: ${{ steps.get-release-notes.outputs.release_note }}
-      release_version: ${{ steps.get-release-notes.outputs.release_version }}
-
     steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - name: setup node
-        uses: actions/setup-node@v6
-      - name: get version
-        run: echo "PACKAGE_VERSION=$(node -p "require('./apps/openreadest-app/package.json').version")" >> $GITHUB_ENV
-      - name: get release
-        id: get-release
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const { data } = await github.rest.repos.getLatestRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
-            core.setOutput('release_id', data.id);
-            core.setOutput('release_tag', data.tag_name);
-      - name: get release notes
-        id: get-release-notes
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require('fs');
-            const version = require('./apps/openreadest-app/package.json').version;
-            const releaseNotesFileContent = fs.readFileSync('./apps/openreadest-app/release-notes.json', 'utf8');
-            const releaseNotes = JSON.parse(releaseNotesFileContent).releases[version] || {};
-            const notes = releaseNotes.notes || [];
-            const releaseNote = notes.map((note, index) => `${index + 1}. ${note}`).join(' ');
-            console.log('Formatted release note:', releaseNote);
-            core.setOutput('release_version', version);
-            core.setOutput('release_note', releaseNote);
-
-  update-release:
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    needs: get-release
-
-    steps:
-      - name: update release
-        id: update-release
-        uses: actions/github-script@v8
+      - name: create release from tag
         env:
-          release_id: ${{ needs.get-release.outputs.release_id }}
-          release_tag: ${{ needs.get-release.outputs.release_tag }}
-          release_note: ${{ needs.get-release.outputs.release_note }}
-        with:
-          script: |
-            const { data } = await github.rest.repos.generateReleaseNotes({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: process.env.release_tag,
-            })
-            const notes = process.env.release_note.split(/\d+\.\s/).filter(Boolean);
-            const formattedNotes = notes.map(note => `* ${note.trim()}`).join("\n");
-            const body = `## Release Highlight\n${formattedNotes}\n\n${data.body}`;
-            github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: process.env.release_id,
-              body: body,
-              draft: false,
-              prerelease: false
-            })
-
-  build-koreader-plugin:
-    needs: get-release
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: create KOReader plugin zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          version=${{ needs.get-release.outputs.release_version }}
-          plugin_zip="Readest-${version}-1.koplugin.zip"
-          meta_file="apps/readest.koplugin/_meta.lua"
-          perl -i -pe "s/^}/    version = \"${version}\",\n}/" "${meta_file}"
+          # 已存在（例如重跑）时跳过，后续步骤会向既有 release 上传
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "OpenReadest $GITHUB_REF_NAME" \
+            --generate-notes || true
 
-          cd apps
-          zip -r ../${plugin_zip} readest.koplugin
-          cd ..
-
-          echo "Uploading ${plugin_zip} to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} ${plugin_zip} --clobber
-
-  build-tauri:
-    needs: get-release
-    permissions:
-      contents: write
+  build:
+    needs: prepare-release
+    name: ${{ matrix.config.name }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - os: ubuntu-latest
-            release: android
-            rust_target: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
-          - os: ubuntu-22.04
-            release: linux
-            arch: x86_64
-            rust_target: x86_64-unknown-linux-gnu
-          - os: ubuntu-22.04-arm
-            release: linux
-            arch: aarch64
-            rust_target: aarch64-unknown-linux-gnu
-          - os: ubuntu-22.04-arm
-            release: linux
-            arch: armhf
-            rust_target: arm-unknown-linux-gnueabihf
-            args: '--target arm-unknown-linux-gnueabihf --bundles deb'
-          - os: macos-latest
-            release: macos
-            arch: aarch64
-            rust_target: x86_64-apple-darwin,aarch64-apple-darwin
-            args: '--target universal-apple-darwin'
-          - os: windows-latest
-            release: windows
-            arch: x86_64
-            rust_target: x86_64-pc-windows-msvc
-            args: '--target x86_64-pc-windows-msvc --bundles nsis'
-          - os: windows-latest
-            release: windows
-            arch: aarch64
-            rust_target: aarch64-pc-windows-msvc
-            args: '--target aarch64-pc-windows-msvc --bundles nsis'
-
+          - { name: android, os: ubuntu-latest, rust_target: 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android' }
+          - { name: linux, os: ubuntu-22.04, rust_target: x86_64-unknown-linux-gnu }
+          - { name: macos, os: macos-latest, rust_target: 'x86_64-apple-darwin,aarch64-apple-darwin', args: '--target universal-apple-darwin' }
+          - { name: windows-x86_64, os: windows-latest, rust_target: x86_64-pc-windows-msvc, args: '--target x86_64-pc-windows-msvc --bundles nsis' }
+          - { name: windows-aarch64, os: windows-latest, rust_target: aarch64-pc-windows-msvc, args: '--target aarch64-pc-windows-msvc --bundles nsis' }
     runs-on: ${{ matrix.config.os }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true
-
-      - name: setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 10.14.0
-
-      - name: setup node
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
 
-      - name: setup Java (for Android build only)
-        if: matrix.config.release == 'android'
-        uses: actions/setup-java@v5
+      # Android 专属工具链
+      - uses: actions/setup-java@v5
+        if: matrix.config.name == 'android'
         with:
           distribution: 'zulu'
           java-version: '17'
-
-      - name: setup Android SDK (for Android build only)
-        if: matrix.config.release == 'android'
-        uses: android-actions/setup-android@v3
-
-      - name: install NDK (for Android build only)
-        if: matrix.config.release == 'android'
+      - uses: android-actions/setup-android@v3
+        if: matrix.config.name == 'android'
+      - name: install NDK
+        if: matrix.config.name == 'android'
         run: sdkmanager "ndk;28.2.13676358"
 
       - name: install dependencies
         run: pnpm install
-
-      - name: copy pdfjs-dist and simplecc-dist to public directory
+      - name: copy vendored frontend assets
         run: pnpm --filter @openreadest/app setup-vendors
 
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.config.rust_target }}
-
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.config.os }}-${{ matrix.config.release }}-${{ matrix.config.arch }}-cargo
+          key: ${{ matrix.config.os }}-${{ matrix.config.name }}-cargo
 
-      - name: install dependencies (ubuntu only)
-        if: contains(matrix.config.os, 'ubuntu') && matrix.config.release != 'android' && matrix.config.arch != 'armhf'
+      - name: install Linux dependencies
+        if: contains(matrix.config.os, 'ubuntu') && matrix.config.name != 'android'
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libfontconfig-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
 
-      - name: install dependencies (ubuntu only - armhf specific)
-        if: contains(matrix.config.os, 'ubuntu') && matrix.config.arch == 'armhf'
-        run: |
-          sudo dpkg --add-architecture armhf
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libfontconfig-dev:armhf libgtk-3-dev:armhf libwebkit2gtk-4.1-dev:armhf libappindicator3-dev:armhf librsvg2-dev:armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-          echo 'PKG_CONFIG_ALLOW_CROSS=1' >> $GITHUB_ENV
-          echo 'PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig' >> $GITHUB_ENV
-          echo 'PKG_CONFIG_SYSROOT_DIR=/usr/arm-linux-gnueabihf' >> $GITHUB_ENV
-          echo 'CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc' >> $GITHUB_ENV
-
-      - name: create .env.local file for Next.js
+      - name: create .env.local for Next.js
         run: |
           echo "NEXT_PUBLIC_APP_PLATFORM=tauri" >> .env.local
           cp .env.local apps/openreadest-app/.env.local
 
-      - name: build and upload Android apks
-        if: matrix.config.release == 'android'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          cd apps/openreadest-app/
-          export NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
-          rm -rf src-tauri/gen/android
-          pnpm tauri android init
-          pnpm tauri icon ../../data/icons/readest-book.png
-          git checkout .
-
-          pushd src-tauri/gen/android
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
-          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
-          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
-          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
-
-          popd
-          version=${{ needs.get-release.outputs.release_version }}
-          apk_path=src-tauri/gen/android/app/build/outputs/apk/universal/release
-          universial_apk=Readest_${version}_universal.apk
-          arm64_apk=Readest_${version}_arm64.apk
-          pnpm tauri android build
-          cp ${apk_path}/app-universal-release.apk $universial_apk
-          pnpm tauri android build -t aarch64
-          cp ${apk_path}/app-universal-release.apk $arm64_apk
-
-          echo "Uploading $universial_apk to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} $universial_apk --clobber
-          echo "Uploading $arm64_apk to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} $arm64_apk --clobber
-          echo "Uploading signatures to GitHub release"
-          pnpm tauri signer sign $universial_apk
-          pnpm tauri signer sign $arm64_apk
-          gh release upload ${{ needs.get-release.outputs.release_tag }} $universial_apk.sig --clobber
-          gh release upload ${{ needs.get-release.outputs.release_tag }} $arm64_apk.sig --clobber
-
-      - name: download and update latest.json for Android release
-        if: matrix.config.release == 'android'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd apps/openreadest-app/
-          curl -sL https://github.com/readest/readest/releases/latest/download/latest.json -o latest.json
-
-          version=${{ needs.get-release.outputs.release_version }}
-          universial_apk_url="https://github.com/readest/readest/releases/download/${{ needs.get-release.outputs.release_tag }}/Readest_${version}_universal.apk"
-          arm64_apk_url="https://github.com/readest/readest/releases/download/${{ needs.get-release.outputs.release_tag }}/Readest_${version}_arm64.apk"
-
-          universial_sig=$(cat Readest_${version}_universal.apk.sig)
-          arm64_sig=$(cat Readest_${version}_arm64.apk.sig)
-
-          jq --arg url "$universial_apk_url" \
-              --arg sig "$universial_sig" \
-              '.platforms["android-universal"] = {signature: $sig, url: $url}' latest.json > tmp.$$.json && mv tmp.$$.json latest.json
-
-          jq --arg url "$arm64_apk_url" \
-              --arg sig "$arm64_sig" \
-              '.platforms["android-arm64"] = {signature: $sig, url: $url}' latest.json > tmp.$$.json && mv tmp.$$.json latest.json
-
-          echo "Uploading updated latest.json to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} latest.json --clobber
-
-      - name: Override tauri-cli with custom AppImage format (Linux)
-        if: matrix.config.release == 'linux'
-        run: cargo install tauri-cli --git https://github.com/tauri-apps/tauri --branch feat/truly-portable-appimage --force
-
+      # 桌面平台：tauri-action 负责构建、签名并上传到 release
       - uses: tauri-apps/tauri-action@v0
-        if: matrix.config.release != 'android'
+        if: matrix.config.name != 'android'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_BUNDLER_NEW_APPIMAGE_FORMAT: 'true'
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -305,96 +100,32 @@ jobs:
           NODE_OPTIONS: '--max-old-space-size=8192'
         with:
           projectPath: apps/openreadest-app
-          releaseId: ${{ needs.get-release.outputs.release_id }}
-          releaseBody: ${{ needs.get-release.outputs.release_note }}
+          tagName: ${{ github.ref_name }}
+          releaseName: OpenReadest ${{ github.ref_name }}
           args: ${{ matrix.config.args || '' }}
 
-      - name: upload release notes to GitHub release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Uploading release notes to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} apps/openreadest-app/release-notes.json --clobber
-
-      - name: build and upload portable binaries (Windows only)
-        if: matrix.config.os == 'windows-latest'
+      # Android：重建 gen 工程、签名并上传 universal APK
+      - name: build and upload Android APK
+        if: matrix.config.name == 'android'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        shell: bash
         run: |
-          echo "Building Portable Binaries"
-          pushd apps/openreadest-app/
-          echo "NEXT_PUBLIC_PORTABLE_APP=true" >> .env.local
-          pnpm tauri build ${{ matrix.config.args }}
-
+          cd apps/openreadest-app
+          export NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
+          rm -rf src-tauri/gen/android
+          pnpm tauri android init
+          pushd src-tauri/gen/android
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
+          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > "$RUNNER_TEMP/keystore.jks"
+          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
           popd
-          echo "Uploading Portable Binaries"
-          arch=${{ matrix.config.arch }}
-          version=${{ needs.get-release.outputs.release_version }}
 
-          if [ "$arch" = "x86_64" ]; then
-            bin_file="Readest_${version}_x64-portable.exe"
-          elif [ "$arch" = "aarch64" ]; then
-            bin_file="Readest_${version}_arm64-portable.exe"
-          else
-            echo "Unknown architecture: $arch"
-            exit 1
-          fi
-
-          exe_file="target/${{ matrix.config.rust_target }}/release/readest.exe"
-          # Browsers on Windows won't download zip files that contain exe files
-          # so upload the exe files instead. This is totally stupid.
-          # powershell.exe -Command "Compress-Archive -Path $exe_file -DestinationPath $bin_file -Force"
-          cp $exe_file $bin_file
-
-          echo "Uploading $bin_file to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} $bin_file --clobber
-
-          echo "Signing portable binary"
-          pushd apps/openreadest-app/
-          pnpm tauri signer sign "../../$bin_file"
-          popd
-          echo "Uploading signature to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} $bin_file.sig --clobber
-
-      - name: download and update latest.json for Windows portable release
-        if: matrix.config.os == 'windows-latest'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          curl -sL https://github.com/readest/readest/releases/latest/download/latest.json -o latest.json
-
-          version=${{ needs.get-release.outputs.release_version }}
-          arch=${{ matrix.config.arch }}
-
-          if [ "$arch" = "x86_64" ]; then
-            bin_file="Readest_${version}_x64-portable.exe"
-            platform_key="windows-x86_64-portable"
-          elif [ "$arch" = "aarch64" ]; then
-            bin_file="Readest_${version}_arm64-portable.exe"
-            platform_key="windows-aarch64-portable"
-          else
-            echo "Unknown architecture: $arch"
-            exit 1
-          fi
-
-          portable_url="https://github.com/readest/readest/releases/download/${{ needs.get-release.outputs.release_tag }}/$bin_file"
-          portable_sig=$(cat $bin_file.sig)
-
-          jq --arg url "$portable_url" \
-              --arg sig "$portable_sig" \
-              --arg key "$platform_key" \
-              '.platforms[$key] = {signature: $sig, url: $url}' latest.json > tmp.$$.json && mv tmp.$$.json latest.json
-
-          echo "Uploading updated latest.json to GitHub release"
-          gh release upload ${{ needs.get-release.outputs.release_tag }} latest.json --clobber
-
-  upload-to-r2:
-    needs: [get-release, build-tauri]
-    uses: ./.github/workflows/upload-to-r2.yml
-    with:
-      tag: ${{ needs.get-release.outputs.release_tag }}
-    secrets: inherit
+          version="${GITHUB_REF_NAME#v}"
+          apk="OpenReadest_${version}_universal.apk"
+          pnpm tauri android build
+          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$apk"
+          pnpm tauri signer sign "$apk"
+          gh release upload "$GITHUB_REF_NAME" "$apk" "$apk.sig" --clobber
