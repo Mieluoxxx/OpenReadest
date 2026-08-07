@@ -76,6 +76,7 @@ cp apps/openreadest-app/.env.local.example apps/openreadest-app/.env.local
 以下命令都可以在仓库根目录直接运行，会自动转发到应用包：
 
 ```bash
+pnpm dev            # 一键开发：清前端缓存 + 启动桌面 Tauri 开发
 pnpm tauri dev     # 桌面端开发（自动执行 setup-vendors）
 pnpm dev-web       # Web 端开发
 pnpm test          # 单元测试（vitest）
@@ -94,6 +95,10 @@ pnpm format:check  # 只检查格式，不改文件（CI 用的就是这个）
 改动 Tauri 权限配置或遇到疑似缓存导致的诡异问题时：
 
 ```bash
+pnpm clean                  # 清前端和后端缓存
+pnpm clean fd               # 只清 Next.js、导出目录和生成的 PWA 文件
+pnpm clean bd               # 只清 Tauri schema 和本仓库 crate
+pnpm clean bd --deep        # 清后端全部 target/（会重新编译数分钟）
 pnpm tauri-dev-clean        # 清前端缓存 + 本仓库 crate，保留第三方依赖编译产物
 pnpm tauri-dev-clean-deep   # 连第三方依赖一起清（会重新编译数分钟）
 ```

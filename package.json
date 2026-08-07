@@ -9,6 +9,8 @@
   "scripts": {
     "prepare": "husky",
     "bootstrap": "node scripts/init-submodules.mjs && pnpm install",
+    "clean": "pnpm --filter @openreadest/app run clean",
+    "dev": "pnpm run clean fd && pnpm tauri dev",
     "setup-vendors": "pnpm --filter @openreadest/app setup-vendors",
     "tauri": "pnpm --filter @openreadest/app tauri",
     "tauri-dev-clean": "pnpm --filter @openreadest/app tauri-dev-clean",
