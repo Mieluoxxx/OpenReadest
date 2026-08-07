@@ -261,6 +261,7 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
             <div className='config-item'>
               <span className=''>{_('Interface Language')}</span>
               <Select
+                className='!bg-transparent focus:border-transparent focus:outline-none'
                 value={getCurrentUILangOption().value}
                 onChange={handleSelectUILang}
                 options={getLangOptions(TRANSLATED_LANGS)}
@@ -298,6 +299,7 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
             <div className='config-item'>
               <span className=''>{_('TTS Text')}</span>
               <Select
+                className='!bg-transparent focus:border-transparent focus:outline-none'
                 value={ttsReadAloudText}
                 onChange={handleSelectTTSText}
                 options={getTTSTextOptions()}
@@ -307,6 +309,7 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
             <div className='config-item'>
               <span className=''>{_('Translation Service')}</span>
               <Select
+                className='!bg-transparent focus:border-transparent focus:outline-none'
                 value={getCurrentTranslationProviderOption().value}
                 onChange={handleSelectTranslationProvider}
                 options={getTranslationProviderOptions()}
@@ -316,6 +319,7 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
             <div className='config-item'>
               <span className=''>{_('Translate To')}</span>
               <Select
+                className='!bg-transparent focus:border-transparent focus:outline-none'
                 value={getCurrentTargetLangOption().value}
                 onChange={handleSelectTargetLang}
                 options={getLangOptions(TRANSLATOR_LANGS)}
@@ -355,6 +359,7 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
               <div className='config-item'>
                 <span className=''>{_('Convert Mode')}</span>
                 <Select
+                  className='!bg-transparent focus:border-transparent focus:outline-none'
                   value={getConvertModeOption().value}
                   onChange={handleSelectConvertMode}
                   options={getConvertModeOptions()}
