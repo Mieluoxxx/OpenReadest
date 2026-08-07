@@ -1,4 +1,3 @@
-import clsx from 'clsx';
 import React, { useEffect, useState } from 'react';
 import { useEnv } from '@/context/EnvContext';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -160,6 +159,11 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
             <div className='config-item'>
               <span className=''>{_('Test Connection')}</span>
               <div className='flex items-center gap-2'>
+                {testError && (
+                  <span className='text-error text-xs' role='status'>
+                    {_(AI_ERROR_MESSAGES[testError])}
+                  </span>
+                )}
                 {testSucceeded && (
                   <LuCheck className='text-success' aria-label={_('Connection successful')} />
                 )}
@@ -191,13 +195,6 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className='mt-3 space-y-1 text-sm'>
-          <p className={clsx('text-base-content/60', 'font-medium')}>
-            {configured ? _('AI service configured.') : _('AI service not configured.')}
-          </p>
-          {testError && <p className='text-red-600'>{_(AI_ERROR_MESSAGES[testError])}</p>}
         </div>
       </div>
     </div>

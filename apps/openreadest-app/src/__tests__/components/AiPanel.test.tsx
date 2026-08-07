@@ -46,6 +46,8 @@ describe('AiPanel', () => {
     expect(screen.getByText('AI Integration')).toBeTruthy();
     expect(screen.queryByText(/Translated source text is sent/)).toBeNull();
     expect(screen.queryByText(/API key is stored in plain text/)).toBeNull();
+    expect(screen.queryByText(/AI service configured/)).toBeNull();
+    expect(screen.queryByText(/AI service not configured/)).toBeNull();
 
     const keyInput = screen.getByPlaceholderText('Leave empty for no auth');
     expect(keyInput.getAttribute('type')).toBe('password');
@@ -73,6 +75,25 @@ describe('AiPanel', () => {
       baseUrl: 'http://localhost:11434/v1',
       model: 'llama3.2',
       apiKey: undefined,
+    });
+  });
+
+  it('shows connection errors in the test row', async () => {
+    vi.mocked(testAiConnection).mockResolvedValue({ ok: false, code: 'NETWORK' });
+    render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
+
+    fireEvent.change(screen.getByPlaceholderText('https://api.openai.com/v1'), {
+      target: { value: 'http://localhost:11434/v1' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('gpt-4o-mini'), {
+      target: { value: 'llama3.2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+
+    await waitFor(() => {
+      const status = screen.getByRole('status');
+      expect(status.textContent).toBe('Network error, please check your connection.');
+      expect(status.closest('.config-item')).toBeTruthy();
     });
   });
 });
