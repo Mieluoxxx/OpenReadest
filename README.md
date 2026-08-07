@@ -84,13 +84,50 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 
 支持 AWS S3、MinIO、Cloudflare R2 等 S3 兼容服务。Web 端需要配置 Bucket CORS；详细说明见 [`apps/openreadest-app/docs/s3.md`](apps/openreadest-app/docs/s3.md)。
 
+## 从源码开发
+
+### 快速上手
+
+```bash
+git clone --recurse-submodules https://github.com/Mieluoxxx/OpenReadest.git
+cd OpenReadest
+pnpm install
+pnpm dev-web        # 浏览器调试，不需要 Rust 工具链
+```
+
+桌面端开发需要先装好 Rust（见 [Tauri 环境准备](https://tauri.app/start/prerequisites/)），然后：
+
+```bash
+pnpm tauri dev
+```
+
+### 两个容易踩的坑
+
+1. **必须带 `--recurse-submodules` 克隆。** 本仓库的 `foliate-js` 是 pnpm workspace 成员，
+   submodule 未初始化时 `pnpm install` 会直接报 `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND`。
+   已经克隆错了也不要重新 clone，补一句 `git submodule update --init --recursive` 就行。
+2. **不要手动改 `public/vendor/` 里的文件。** 那些是 `pnpm setup-vendors` 从
+   `pdfjs-dist` 和 simplecc 复制出来的构建产物，已被 gitignore，下次构建会被覆盖。
+
+### 仓库结构
+
+| 路径                                         | 内容                                         |
+| :------------------------------------------- | :------------------------------------------- |
+| `apps/openreadest-app/`                      | Next.js 前端 + `src-tauri/` 桌面端 Rust 代码 |
+| `packages/foliate-js/`                       | 电子书解析与渲染（submodule）                |
+| `packages/tauri/`、`packages/tauri-plugins/` | 定制的 Tauri 与插件（submodule）             |
+| `packages/simplecc-wasm/`                    | 简繁转换（submodule）                        |
+| `packages/rust-block/`                       | 本仓库自有 Rust crate                        |
+
+完整的环境要求、常用命令、环境变量与缓存清理说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
 ## 贡献方式
 
 欢迎任何形式的贡献！参与前请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解社区准则。
 
 - **反馈问题或建议**：在本仓库 [Issues](https://github.com/Mieluoxxx/OpenReadest/issues) 提出，描述问题时请附上版本号、平台与复现步骤
 - **提交代码**：Fork 本仓库后提交 Pull Request；建议先创建 Issue 对齐方向，避免重复劳动
-- **本地构建**：仓库结构与构建说明见 [CONTRIBUTING.md](CONTRIBUTING.md)
+- **本地构建**：见上方「从源码开发」与 [CONTRIBUTING.md](CONTRIBUTING.md)
 
 > 本项目为基于 Readest 的独立 Fork，请将问题反馈提交到本仓库，避免打扰原项目开发者。
 

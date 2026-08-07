@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+#
+# Formats staged files with Prettier before committing.
+#
+# Only staged files are touched, and only the extensions Prettier is configured
+# for (see the "format" script in the root package.json). Files reformatted here
+# are re-staged, so the commit always contains formatted code and CI's
+# `pnpm format:check` cannot fail on it.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR |
+  grep -E '\.(js|jsx|ts|tsx|css|json|md|html|yml)$' || true)
+
+[ -z "$staged" ] && exit 0
+
+echo "$staged" | xargs pnpm exec prettier --write --ignore-unknown
+echo "$staged" | xargs git add

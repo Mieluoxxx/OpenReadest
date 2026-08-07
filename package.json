@@ -2,12 +2,23 @@
   "name": "@openreadest/monorepo",
   "private": true,
   "repository": "Mieluoxxx/openreadest",
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "bootstrap": "node scripts/init-submodules.mjs && pnpm install",
+    "setup-vendors": "pnpm --filter @openreadest/app setup-vendors",
     "tauri": "pnpm --filter @openreadest/app tauri",
     "tauri-dev-clean": "pnpm --filter @openreadest/app tauri-dev-clean",
     "tauri-dev-clean-deep": "pnpm --filter @openreadest/app tauri-dev-clean-deep",
     "dev-web": "pnpm --filter @openreadest/app dev-web",
+    "build": "pnpm --filter @openreadest/app build",
+    "build-web": "pnpm --filter @openreadest/app build-web",
+    "check:all": "pnpm --filter @openreadest/app check:all",
+    "lint": "pnpm --filter @openreadest/app lint",
+    "test": "pnpm --filter @openreadest/app test",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json,md,html,yml}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,json,md,html,yml}\""
   },

@@ -2,6 +2,9 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "rust-analyzer.linkedProjects": [
     "packages/tauri/Cargo.toml",
+    "packages/rust-block/Cargo.toml",
+    "packages/tauri-plugins/plugins/deep-link/Cargo.toml",
+    "packages/tauri-plugins/plugins/single-instance/Cargo.toml",
     "apps/openreadest-app/src-tauri/Cargo.toml"
   ],
   // "editor.formatOnSave": true, // uncomment to add format on save
