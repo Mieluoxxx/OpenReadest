@@ -4,28 +4,20 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useSettingsStore } from '@/store/settingsStore';
 import { AiConfigRepository } from '@/services/ai/AiConfigRepository';
 import { AiErrorCode, testAiConnection } from '@/services/ai/aiClient';
-import { LuCheck, LuEye, LuEyeOff } from 'react-icons/lu';
+import { LuCheck, LuEye, LuEyeOff, LuX } from 'react-icons/lu';
 import { SettingsPanelPanelProp } from './SettingsDialog';
 
-const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
-  NOT_CONFIGURED: 'Please configure the AI service first.',
-  AUTH_FAILED: 'API key is invalid or expired.',
-  ENDPOINT_OR_MODEL_ERROR: 'Request rejected by the service (Base URL or model may be incorrect).',
-  RATE_LIMITED: 'Too many requests or quota exhausted.',
-  SERVER_ERROR: 'AI service is temporarily unavailable.',
-  TIMEOUT: 'Request timed out, please retry.',
-  BAD_RESPONSE: 'Service is not compatible with the OpenAI protocol.',
-  NETWORK: 'Network error, please check your connection.',
-};
+const DEFAULT_BASE_URL = 'https://api.deepseek.com/v1';
+const DEFAULT_MODEL = 'deepseek-v4-flash';
 
 const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
   const _ = useTranslation();
   const { envConfig } = useEnv();
   const { settings } = useSettingsStore();
-  const saved = settings.globalAiSettings ?? { baseUrl: '', model: '' };
+  const saved = settings.globalAiSettings ?? {};
 
-  const [baseUrl, setBaseUrl] = useState(saved.baseUrl);
-  const [model, setModel] = useState(saved.model);
+  const [baseUrl, setBaseUrl] = useState(saved.baseUrl ?? DEFAULT_BASE_URL);
+  const [model, setModel] = useState(saved.model ?? DEFAULT_MODEL);
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [savedHasKey, setSavedHasKey] = useState(false);
@@ -106,36 +98,24 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
         <h2 className='mb-2 font-medium'>{_('AI Integration')}</h2>
         <div className='card border-base-200 bg-base-100 border shadow'>
           <div className='divide-base-200 divide-y'>
-            <div className='config-item'>
+            <div className='config-item !grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4'>
               <span className=''>{_('Base URL')}</span>
               <input
                 type='text'
-                className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 text-sm'
-                placeholder='https://api.openai.com/v1'
+                className='bg-base-200 h-8 min-h-8 w-full min-w-0 rounded-md border-none px-2 text-sm'
+                placeholder={DEFAULT_BASE_URL}
                 value={baseUrl}
                 onChange={(e) => handleConfigChange(setBaseUrl, e.target.value)}
                 spellCheck={false}
               />
             </div>
 
-            <div className='config-item'>
-              <span className=''>{_('Model')}</span>
-              <input
-                type='text'
-                className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 text-sm'
-                placeholder='gpt-4o-mini'
-                value={model}
-                onChange={(e) => handleConfigChange(setModel, e.target.value)}
-                spellCheck={false}
-              />
-            </div>
-
-            <div className='config-item'>
+            <div className='config-item !grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4'>
               <span className=''>{_('API Key (optional)')}</span>
-              <div className='relative'>
+              <div className='relative w-full min-w-0'>
                 <input
                   type={showKey ? 'text' : 'password'}
-                  className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 pe-8 text-sm'
+                  className='bg-base-200 h-8 min-h-8 w-full min-w-0 rounded-md border-none px-2 pe-8 text-sm'
                   placeholder={
                     savedHasKey ? _('Saved, enter to replace') : _('Leave empty for no auth')
                   }
@@ -156,14 +136,22 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
               </div>
             </div>
 
+            <div className='config-item !grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4'>
+              <span className=''>{_('Model Name')}</span>
+              <input
+                type='text'
+                className='bg-base-200 h-8 min-h-8 w-full min-w-0 rounded-md border-none px-2 text-sm'
+                placeholder={DEFAULT_MODEL}
+                value={model}
+                onChange={(e) => handleConfigChange(setModel, e.target.value)}
+                spellCheck={false}
+              />
+            </div>
+
             <div className='config-item'>
-              <span className=''>{_('Test Connection')}</span>
-              <div className='flex items-center gap-2'>
-                {testError && (
-                  <span className='text-error text-xs' role='status'>
-                    {_(AI_ERROR_MESSAGES[testError])}
-                  </span>
-                )}
+              <span className=''>{_('Save / Test / Clear')}</span>
+              <div className='flex flex-wrap items-center justify-end gap-2'>
+                {testError && <LuX className='text-error' aria-label={_('Connection failed')} />}
                 {testSucceeded && (
                   <LuCheck className='text-success' aria-label={_('Connection successful')} />
                 )}
@@ -175,12 +163,6 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
                 >
                   {testing ? _('Testing...') : _('Test')}
                 </button>
-              </div>
-            </div>
-
-            <div className='config-item'>
-              <span className=''>{_('Save / Clear')}</span>
-              <div className='flex items-center gap-2'>
                 <button type='button' className='btn btn-primary btn-sm' onClick={handleSave}>
                   {_('Save')}
                 </button>

@@ -60,10 +60,10 @@ describe('AiPanel', () => {
   it('shows a green success check after a successful connection test', async () => {
     render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
 
-    fireEvent.change(screen.getByPlaceholderText('https://api.openai.com/v1'), {
+    fireEvent.change(screen.getByPlaceholderText('https://api.deepseek.com/v1'), {
       target: { value: 'http://localhost:11434/v1' },
     });
-    fireEvent.change(screen.getByPlaceholderText('gpt-4o-mini'), {
+    fireEvent.change(screen.getByPlaceholderText('deepseek-v4-flash'), {
       target: { value: 'llama3.2' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
@@ -78,22 +78,50 @@ describe('AiPanel', () => {
     });
   });
 
-  it('shows connection errors in the test row', async () => {
+  it('shows a red cross after a failed connection test', async () => {
     vi.mocked(testAiConnection).mockResolvedValue({ ok: false, code: 'NETWORK' });
     render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
 
-    fireEvent.change(screen.getByPlaceholderText('https://api.openai.com/v1'), {
+    fireEvent.change(screen.getByPlaceholderText('https://api.deepseek.com/v1'), {
       target: { value: 'http://localhost:11434/v1' },
     });
-    fireEvent.change(screen.getByPlaceholderText('gpt-4o-mini'), {
+    fireEvent.change(screen.getByPlaceholderText('deepseek-v4-flash'), {
       target: { value: 'llama3.2' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
 
     await waitFor(() => {
-      const status = screen.getByRole('status');
-      expect(status.textContent).toBe('Network error, please check your connection.');
-      expect(status.closest('.config-item')).toBeTruthy();
+      const cross = screen.getByLabelText('Connection failed');
+      expect(cross.closest('.config-item')).toBeTruthy();
+      expect(screen.queryByText(/Network error/)).toBeNull();
     });
+  });
+
+  it('orders fields as Base URL, API Key, Model Name and keeps input widths aligned', () => {
+    const { container } = render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
+
+    const rows = Array.from(container.querySelectorAll('.config-item'));
+    const fieldTexts = rows.map((row) => row.querySelector('span')?.textContent ?? '');
+    const order = ['Base URL', 'API Key (optional)', 'Model Name'];
+    const positions = order.map((label) => fieldTexts.indexOf(label));
+    expect(positions).toEqual([0, 1, 2]);
+
+    // 三个字段行共享同一等宽两列网格布局类
+    order.forEach((_, i) => {
+      const row = rows[positions[i]!]!;
+      expect(row.className).toContain('!grid');
+      expect(row.className).toContain('grid-cols-[minmax(0,1fr)_minmax(0,2fr)]');
+    });
+
+    // 操作按钮顺序：Test → Save → Clear API Key
+    const buttons = Array.from(container.querySelectorAll('button')).map(
+      (btn) => btn.textContent?.trim() ?? '',
+    );
+    const testIdx = buttons.indexOf('Test');
+    const saveIdx = buttons.indexOf('Save');
+    const clearIdx = buttons.indexOf('Clear API Key');
+    expect(testIdx).toBeGreaterThan(-1);
+    expect(saveIdx).toBeGreaterThan(testIdx);
+    expect(clearIdx).toBeGreaterThan(saveIdx);
   });
 });
