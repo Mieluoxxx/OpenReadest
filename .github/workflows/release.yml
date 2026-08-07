@@ -33,7 +33,7 @@ jobs:
         config:
           - { name: android, os: ubuntu-latest, rust_target: 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android' }
           - { name: linux, os: ubuntu-22.04, rust_target: x86_64-unknown-linux-gnu }
-          - { name: macos, os: macos-latest, rust_target: 'x86_64-apple-darwin,aarch64-apple-darwin', args: '--target universal-apple-darwin' }
+          - { name: macos, os: macos-latest, rust_target: 'x86_64-apple-darwin,aarch64-apple-darwin', args: '--target universal-apple-darwin --no-sign' }
           - { name: windows-x86_64, os: windows-latest, rust_target: x86_64-pc-windows-msvc, args: '--target x86_64-pc-windows-msvc --bundles nsis' }
           - { name: windows-aarch64, os: windows-latest, rust_target: aarch64-pc-windows-msvc, args: '--target aarch64-pc-windows-msvc --bundles nsis' }
     runs-on: ${{ matrix.config.os }}
@@ -85,19 +85,11 @@ jobs:
           echo "NEXT_PUBLIC_APP_PLATFORM=tauri" >> .env.local
           cp .env.local apps/openreadest-app/.env.local
 
-      # 桌面平台：tauri-action 负责构建、签名并上传到 release
+      # 桌面平台：tauri-action 负责构建并上传到 release
       - uses: tauri-apps/tauri-action@v0
         if: matrix.config.name != 'android'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           NODE_OPTIONS: '--max-old-space-size=8192'
         with:
           projectPath: apps/openreadest-app
@@ -105,28 +97,19 @@ jobs:
           releaseName: OpenReadest ${{ github.ref_name }}
           args: ${{ matrix.config.args || '' }}
 
-      # Android：重建 gen 工程、签名并上传 universal APK
+      # Android：重建 gen 工程并上传未签名 universal APK
       - name: build and upload Android APK
         if: matrix.config.name == 'android'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           cd apps/openreadest-app
           export NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
           rm -rf src-tauri/gen/android
           pnpm tauri android init
-          pushd src-tauri/gen/android
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
-          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
-          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > "$RUNNER_TEMP/keystore.jks"
-          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
-          popd
 
           version="${GITHUB_REF_NAME#v}"
           apk="OpenReadest_${version}_universal.apk"
           pnpm tauri android build
-          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$apk"
-          pnpm tauri signer sign "$apk"
-          gh release upload "$GITHUB_REF_NAME" "$apk" "$apk.sig" --clobber
+          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk "$apk"
+          gh release upload "$GITHUB_REF_NAME" "$apk" --clobber

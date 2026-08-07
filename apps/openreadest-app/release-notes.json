@@ -1,5 +1,11 @@
 {
   "releases": {
+    "1.0.2": {
+      "date": "2026-08-07",
+      "notes": [
+        "Packaging: Release unsigned builds for macOS and Android so users can sign locally; fixed Tauri crate/npm version alignment (v2.11)"
+      ]
+    },
     "1.0.1": {
       "date": "2026-08-07",
       "notes": [
