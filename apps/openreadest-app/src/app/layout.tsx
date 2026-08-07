@@ -32,6 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang='und'
+      // The Tauri initialization_script adds the 'edge-to-edge' class to
+      // document.documentElement before React hydrates, which may differ from
+      // the server-rendered className (depends on NEXT_PUBLIC_APP_PLATFORM at
+      // build time). suppressHydrationWarning silences the resulting mismatch.
+      suppressHydrationWarning
       className={process.env['NEXT_PUBLIC_APP_PLATFORM'] === 'tauri' ? 'edge-to-edge' : ''}
     >
       <head>
