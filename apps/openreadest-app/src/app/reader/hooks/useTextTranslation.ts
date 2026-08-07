@@ -3,6 +3,12 @@ import { FoliateView } from '@/types/view';
 import { UseTranslatorOptions } from '@/services/translators';
 import { useReaderStore } from '@/store/readerStore';
 import { useTranslator } from '@/hooks/useTranslator';
+import { useTranslation } from '@/hooks/useTranslation';
+import {
+  appendTranslationFailure,
+  hasTranslationTarget,
+  shouldSkipTranslationText,
+} from '@/services/translators/translationDom';
 import { walkTextNodes } from '@/utils/walk';
 import { debounce } from '@/utils/debounce';
 import { getLocale } from '@/utils/misc';
@@ -13,6 +19,7 @@ export function useTextTranslation(
   widthLineBreak = false,
   targetBlockClassName = 'translation-target-block',
 ) {
+  const _ = useTranslation();
   const { getViewSettings, getProgress } = useReaderStore();
   const viewSettings = getViewSettings(bookKey);
   const progress = getProgress(bookKey);
@@ -29,7 +36,8 @@ export function useTextTranslation(
 
   const translateRef = useRef(translate);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const translatedElements = useRef<HTMLElement[]>([]);
+  const translatedElements = useRef<Set<HTMLElement>>(new Set());
+  const translatingElements = useRef<WeakSet<HTMLElement>>(new WeakSet());
   const allTextNodes = useRef<HTMLElement[]>([]);
 
   const toggleTranslationVisibility = (visible: boolean) => {
@@ -69,7 +77,7 @@ export function useTextTranslation(
       translationTargets.forEach((target) => target.remove());
     });
 
-    translatedElements.current = [];
+    translatedElements.current.clear();
     if (viewSettings?.translationEnabled && view) {
       recreateTranslationObserver();
     }
@@ -130,11 +138,9 @@ export function useTextTranslation(
   const translateElement = async (el: HTMLElement) => {
     if (!enabled.current) return;
     const text = el.textContent?.replaceAll('\n', '').trim();
-    if (!text) return;
-
-    if (el.classList.contains('translation-target')) {
-      return;
-    }
+    if (!text || shouldSkipTranslationText(text)) return;
+    if (hasTranslationTarget(el) || translatingElements.current.has(el)) return;
+    translatingElements.current.add(el);
 
     const updateSourceNodes = (element: HTMLElement) => {
       const hasDirectText = Array.from(element.childNodes).some(
@@ -183,38 +189,46 @@ export function useTextTranslation(
       }
     };
 
-    updateSourceNodes(el);
-
     try {
       const translated = await translateRef.current([text]);
       const translatedText = translated[0];
       if (!translatedText || text === translatedText) return;
 
-      const wrapper = document.createElement('font');
+      // 请求期间可能由其他路径完成翻译；避免重复修改源文本或追加译文。
+      if (hasTranslationTarget(el)) return;
+      // 仅在译文成功后隐藏/修改原文；失败时原文保持可读。
+      updateSourceNodes(el);
+
+      const ownerDocument = el.ownerDocument;
+      const wrapper = ownerDocument.createElement('font');
       wrapper.className = `translation-target ${!enabled.current ? 'hidden' : ''}`;
       wrapper.setAttribute('translation-element-mark', '1');
       wrapper.setAttribute('lang', targetLang || getLocale());
       if (widthLineBreak) {
-        wrapper.appendChild(document.createElement('br'));
+        wrapper.appendChild(ownerDocument.createElement('br'));
       }
 
-      const blockWrapper = document.createElement('font');
+      const blockWrapper = ownerDocument.createElement('font');
       blockWrapper.className = `translation-target ${targetBlockClassName}`;
 
-      const inner = document.createElement('font');
+      const inner = ownerDocument.createElement('font');
       inner.className = 'translation-target target-inner target-inner-theme-none';
       inner.textContent = translatedText;
 
       blockWrapper.appendChild(inner);
       wrapper.appendChild(blockWrapper);
 
-      if (el.querySelector('.translation-target')) {
-        return;
-      }
       el.appendChild(wrapper);
-      translatedElements.current.push(el);
+      translatedElements.current.add(el);
     } catch (err) {
       console.warn('Translation failed:', err);
+      appendTranslationFailure(el, _('Translation failed'), () => {
+        translatedElements.current.delete(el);
+        void translateElement(el);
+      });
+      translatedElements.current.add(el);
+    } finally {
+      translatingElements.current.delete(el);
     }
   };
 
@@ -324,7 +338,7 @@ export function useTextTranslation(
         view.removeEventListener('load', observeTextNodes);
       }
       observerRef.current?.disconnect();
-      translatedElements.current = [];
+      translatedElements.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);

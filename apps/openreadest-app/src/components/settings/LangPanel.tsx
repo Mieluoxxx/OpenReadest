@@ -6,6 +6,8 @@ import { useReaderStore } from '@/store/readerStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSettingsStore } from '@/store/settingsStore';
 import { saveViewSettings } from '@/helpers/settings';
+import { AiConfigRepository } from '@/services/ai/AiConfigRepository';
+import { eventDispatcher } from '@/utils/event';
 import { getTranslators } from '@/services/translators';
 import { useResetViewSettings } from '@/hooks/useResetSettings';
 import { TRANSLATED_LANGS, TRANSLATOR_LANGS } from '@/services/constants';
@@ -82,7 +84,9 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
     const translators = getTranslators();
     const availableProviders = translators.map((t) => {
       let label = t.label;
-      if (t.authRequired && !token) {
+      if (t.name === 'ai' && !AiConfigRepository.isConfigured()) {
+        label = `${label} (${_('Not Configured')})`;
+      } else if (t.authRequired && !token) {
         label = `${label} (${_('Login Required')})`;
       } else if (t.quotaExceeded) {
         label = `${label} (${_('Quota Exceeded')})`;
@@ -90,6 +94,22 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
       return { value: t.name, label };
     });
     return availableProviders;
+  };
+
+  const handleSelectTranslationProvider = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const option = event.target.value;
+    if (option === 'ai' && !AiConfigRepository.isConfigured()) {
+      eventDispatcher.dispatch('toast', {
+        timeout: 4000,
+        message: _('AI translation is not configured. Please configure it in the AI settings.'),
+        type: 'warning',
+      });
+      return; // 不静默保存未配置的 AI
+    }
+    setTranslationProvider(option);
+    saveViewSettings(envConfig, bookKey, 'translationProvider', option, false, false);
+    viewSettings.translationProvider = option;
+    setViewSettings(bookKey, { ...viewSettings });
   };
 
   const getCurrentTranslationProviderOption = () => {
@@ -102,14 +122,6 @@ const LangPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterReset 
       ? value
       : availableTranslators[0]?.name;
     return allProviders.find((p) => p.value === currentProvider) || allProviders[0]!;
-  };
-
-  const handleSelectTranslationProvider = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const option = event.target.value;
-    setTranslationProvider(option);
-    saveViewSettings(envConfig, bookKey, 'translationProvider', option, false, false);
-    viewSettings.translationProvider = option;
-    setViewSettings(bookKey, { ...viewSettings });
   };
 
   const getCurrentTargetLangOption = () => {

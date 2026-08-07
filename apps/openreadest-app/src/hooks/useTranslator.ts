@@ -12,8 +12,10 @@ const getAvailableTranslator = (provider?: TranslatorName, token?: string | null
     (translator) => (translator.authRequired ? !!token : true) && !translator.quotaExceeded,
   );
 
-  return availableTranslators.find((translator) => translator.name === provider)
-    || availableTranslators[0];
+  return (
+    availableTranslators.find((translator) => translator.name === provider) ||
+    availableTranslators[0]
+  );
 };
 
 export function useTranslator({
@@ -57,6 +59,7 @@ export function useTranslator({
       const targetLanguage = options?.target || targetLang || getLocale();
       const useCache = options?.useCache ?? false;
       const textsToTranslate = enablePreprocessing ? preprocess(input) : input;
+      const cacheNamespace = translator?.getCacheNamespace?.() ?? selectedProvider;
 
       if (textsToTranslate.length === 0 || textsToTranslate.every((t) => !t?.trim())) {
         return textsToTranslate;
@@ -73,7 +76,7 @@ export function useTranslator({
             text,
             sourceLanguage,
             targetLanguage,
-            selectedProvider,
+            cacheNamespace,
           );
           if (cachedTranslation) return;
 
@@ -85,7 +88,7 @@ export function useTranslator({
       if (textsNeedingTranslation.length === 0) {
         const results = await Promise.all(
           textsToTranslate.map((text) =>
-            getFromCache(text, sourceLanguage, targetLanguage, selectedProvider).then(
+            getFromCache(text, sourceLanguage, targetLanguage, cacheNamespace).then(
               (cached) => cached || text,
             ),
           ),
@@ -116,7 +119,7 @@ export function useTranslator({
               translatedTexts[index] || '',
               sourceLanguage,
               targetLanguage,
-              selectedProvider,
+              cacheNamespace,
             );
           }),
         );
@@ -136,7 +139,7 @@ export function useTranslator({
                 originalText,
                 sourceLanguage,
                 targetLanguage,
-                selectedProvider,
+                cacheNamespace,
               );
 
               if (cachedTranslation) {

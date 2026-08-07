@@ -7,6 +7,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useTranslator } from '@/hooks/useTranslator';
 import { TRANSLATOR_LANGS } from '@/services/constants';
 import { UseTranslatorOptions, getTranslators } from '@/services/translators';
+import { AiConfigRepository } from '@/services/ai/AiConfigRepository';
+import { eventDispatcher } from '@/utils/event';
 import Select from '@/components/Select';
 
 const notSupportedLangs = [''];
@@ -71,6 +73,14 @@ const TranslatorPopup: React.FC<TranslatorPopupProps> = ({
 
   const handleProviderChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const requestedProvider = event.target.value;
+    if (requestedProvider === 'ai' && !AiConfigRepository.isConfigured()) {
+      eventDispatcher.dispatch('toast', {
+        timeout: 4000,
+        message: _('AI translation is not configured. Please configure it in the AI settings.'),
+        type: 'warning',
+      });
+      return; // 禁止静默降级/静默选中未配置的 AI
+    }
     const availableTranslators = getTranslators().filter(
       (t) => (t.authRequired ? !!token : true) && !t.quotaExceeded,
     );
@@ -86,7 +96,9 @@ const TranslatorPopup: React.FC<TranslatorPopupProps> = ({
   useEffect(() => {
     const availableProviders = translators.map((t) => {
       let label = t.label;
-      if (t.authRequired && !token) {
+      if (t.name === 'ai' && !AiConfigRepository.isConfigured()) {
+        label = `${label} (${_('Not Configured')})`;
+      } else if (t.authRequired && !token) {
         label = `${label} (${_('Login Required')})`;
       } else if (t.quotaExceeded) {
         label = `${label} (${_('Quota Exceeded')})`;
@@ -102,6 +114,11 @@ const TranslatorPopup: React.FC<TranslatorPopupProps> = ({
     const fetchTranslation = async () => {
       setError(null);
       setTranslation(null);
+
+      if (provider === 'ai' && !AiConfigRepository.isConfigured()) {
+        setError(_('AI translation is not configured. Please configure it in the AI settings.'));
+        return; // 不发起无效请求
+      }
 
       try {
         const input = text.replaceAll('\n', '').trim();

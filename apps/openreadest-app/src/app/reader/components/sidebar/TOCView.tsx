@@ -10,7 +10,6 @@ import { useSidebarStore } from '@/store/sidebarStore';
 import { findParentPath } from '@/utils/toc';
 import { eventDispatcher } from '@/utils/event';
 import { getContentMd5 } from '@/utils/misc';
-import { useTextTranslation } from '../../hooks/useTextTranslation';
 import { FlatTOCItem, StaticListRow, VirtualListRow } from './TOCItem';
 
 const getItemIdentifier = (item: TOCItem) => {
@@ -42,9 +41,8 @@ const TOCView: React.FC<{
   sections?: SectionItem[];
 }> = ({ bookKey, toc, sections }) => {
   const { appService } = useEnv();
-  const { getView, getProgress, getViewSettings } = useReaderStore();
+  const { getView, getProgress } = useReaderStore();
   const { sideBarBookKey, isSideBarVisible } = useSidebarStore();
-  const viewSettings = getViewSettings(bookKey)!;
   const progress = getProgress(bookKey);
 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -112,13 +110,6 @@ const TOCView: React.FC<{
     }
     return;
   }, [initialize, handleInteraction]);
-
-  useTextTranslation(
-    bookKey,
-    containerRef.current || staticListRef.current,
-    false,
-    'translation-target-toc',
-  );
 
   useEffect(() => {
     const updateHeight = () => {
@@ -232,8 +223,9 @@ const TOCView: React.FC<{
   }, [flatItems, activeHref]);
 
   const virtualItemSize = useMemo(() => {
-    return window.innerWidth >= 640 && !viewSettings?.translationEnabled ? 37 : 57;
-  }, [viewSettings?.translationEnabled]);
+    // 目录不再翻译（移除原译文占位行高）；桌面 37、移动端 57（触控目标优化）
+    return window.innerWidth >= 640 ? 37 : 57;
+  }, []);
 
   const virtualListData = useMemo(
     () => ({

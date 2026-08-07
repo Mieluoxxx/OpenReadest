@@ -493,6 +493,25 @@ const getTranslationStyles = (showSource: boolean) => `
   .translation-target.hidden {
     display: none !important;
   }
+  .translation-failed {
+    display: inline-block !important;
+    margin-inline-start: 0.5em !important;
+    padding: 0.05em 0.4em !important;
+    border: 1px solid currentColor !important;
+    border-radius: 3px !important;
+    font-size: 0.75em !important;
+    line-height: 1.4 !important;
+    opacity: 0.65;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .translation-failed:hover,
+  .translation-failed:focus {
+    opacity: 1;
+    outline: 1px solid currentColor;
+    outline-offset: 2px;
+  }
   .translation-target-block {
     display: block !important;
     ${showSource ? 'margin: 0.5em 0 !important;' : ''}

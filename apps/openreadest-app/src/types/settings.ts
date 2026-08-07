@@ -7,13 +7,7 @@ import { OPDSCatalog } from './opds';
 export type ThemeType = 'light' | 'dark' | 'auto';
 export type LibraryViewModeType = 'grid' | 'list';
 export type LibrarySortByType =
-  | 'title'
-  | 'author'
-  | 'updated'
-  | 'created'
-  | 'size'
-  | 'format'
-  | 'published';
+  'title' | 'author' | 'updated' | 'created' | 'size' | 'format' | 'published';
 export type LibraryCoverFitType = 'crop' | 'fit';
 
 export type KOSyncChecksumMethod = 'binary' | 'filename';
@@ -33,6 +27,11 @@ export interface ReadSettings {
   customHighlightColors: Record<HighlightColor, string>;
   customTtsHighlightColors: string[];
   customThemes: CustomTheme[];
+}
+
+export interface AiSettings {
+  baseUrl: string;
+  model: string;
 }
 
 export interface KOSyncSettings {
@@ -88,4 +87,6 @@ export interface SystemSettings {
 
   globalReadSettings: ReadSettings;
   globalViewSettings: ViewSettings;
+
+  globalAiSettings: AiSettings;
 }

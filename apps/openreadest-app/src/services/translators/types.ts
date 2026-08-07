@@ -5,6 +5,13 @@ export interface TranslationProvider {
   label: string;
   authRequired?: boolean;
   quotaExceeded?: boolean;
+  /**
+   * Optional cache namespace for this provider.
+   * When present, it is used as the provider dimension of cache keys instead of
+   * `name`, so providers whose behavior depends on extra identity (e.g. AI model
+   * / base URL) can isolate cached translations per identity.
+   */
+  getCacheNamespace?: () => string;
   translate: (
     texts: string[],
     sourceLang: string,

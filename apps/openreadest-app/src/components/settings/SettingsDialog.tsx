@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useResponsiveSize } from '@/hooks/useResponsiveSize';
 import { useTranslation } from '@/hooks/useTranslation';
 import { RiFontSize } from 'react-icons/ri';
-import { RiDashboardLine, RiTranslate } from 'react-icons/ri';
+import { RiDashboardLine, RiSparklingLine, RiTranslate } from 'react-icons/ri';
 import { VscSymbolColor } from 'react-icons/vsc';
 import { PiDotsThreeVerticalBold } from 'react-icons/pi';
 import { LiaHandPointerSolid } from 'react-icons/lia';
@@ -21,10 +21,11 @@ import DialogMenu from './DialogMenu';
 import ControlPanel from './ControlPanel';
 import LangPanel from './LangPanel';
 import IntegrationsPanel from './IntegrationsPanel';
+import AiPanel from './AiPanel';
 import MiscPanel from './MiscPanel';
 
 export type SettingsPanelType =
-  'Font' | 'Layout' | 'Color' | 'Control' | 'Language' | 'Integration' | 'Custom';
+  'Font' | 'Layout' | 'Color' | 'Control' | 'Language' | 'Integration' | 'AI' | 'Custom';
 export type SettingsPanelPanelProp = {
   bookKey: string;
   onRegisterReset: (resetFn: () => void) => void;
@@ -77,6 +78,11 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       label: _('Integrations'),
     },
     {
+      tab: 'AI',
+      icon: RiSparklingLine,
+      label: _('AI'),
+    },
+    {
       tab: 'Custom',
       icon: IoAccessibilityOutline,
       label: _('Custom'),
@@ -106,6 +112,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     Control: null,
     Language: null,
     Integration: null,
+    AI: null,
     Custom: null,
   });
 
@@ -297,6 +304,9 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           />
         )}
         {activePanel === 'Integration' && <IntegrationsPanel />}
+        {activePanel === 'AI' && (
+          <AiPanel bookKey={bookKey} onRegisterReset={(fn) => registerResetFunction('AI', fn)} />
+        )}
         {activePanel === 'Custom' && (
           <MiscPanel
             bookKey={bookKey}

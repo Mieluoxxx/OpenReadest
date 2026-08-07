@@ -79,6 +79,8 @@ export const DEFAULT_SYSTEM_SETTINGS: Partial<SystemSettings> = {
   libraryAutoColumns: true,
   libraryColumns: 6,
 
+  globalAiSettings: { baseUrl: '', model: '' },
+
   kosync: DEFAULT_KOSYNC_SETTINGS,
 
   lastSyncedAtBooks: 0,

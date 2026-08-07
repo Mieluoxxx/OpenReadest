@@ -1,5 +1,6 @@
 import { TranslationProvider } from '../types';
 import { azureProvider } from './azure';
+import { aiProvider } from './ai';
 import { googleProvider } from './google';
 import { yandexProvider } from './yandex';
 
@@ -18,11 +19,13 @@ function createTranslator<T extends string>(
 const azureTranslator = createTranslator('azure', azureProvider);
 const googleTranslator = createTranslator('google', googleProvider);
 const yandexTranslator = createTranslator('yandex', yandexProvider);
+const aiTranslator = createTranslator('ai', aiProvider);
 
 const availableTranslators = [
   azureTranslator,
   googleTranslator,
   yandexTranslator,
+  aiTranslator,
   // Add more translators here
 ];
 
