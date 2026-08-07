@@ -559,6 +559,10 @@ export class NativeAppService extends BaseAppService {
     const newDir = await this.fs.getPrefix('Images');
     const oldDir = await join(rootPath, 'Images', 'Readest', 'Images');
 
+    if (!(await this.fs.exists(oldDir, 'None'))) {
+      console.log('Migration 20251029 skipped: legacy Images dir not found.');
+      return;
+    }
     await copyFiles(this, oldDir, newDir);
 
     const dirToDelete = await join(rootPath, 'Images', 'Readest');
