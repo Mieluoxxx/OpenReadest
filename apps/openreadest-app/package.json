@@ -1,6 +1,6 @@
 {
   "name": "@openreadest/app",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "pnpm prepare-tauri-dev && pnpm clean-generated-pwa && dotenv -e .env.tauri -- next dev",

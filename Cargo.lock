@@ -3224,7 +3224,7 @@ dependencies = [
 
 [[package]]
 name = "openreadest"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "block",
  "cocoa",
