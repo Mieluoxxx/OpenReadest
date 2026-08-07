@@ -5,6 +5,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useSettingsStore } from '@/store/settingsStore';
 import { AiConfigRepository } from '@/services/ai/AiConfigRepository';
 import { AiErrorCode, testAiConnection } from '@/services/ai/aiClient';
+import { LuCheck, LuEye, LuEyeOff } from 'react-icons/lu';
 import { SettingsPanelPanelProp } from './SettingsDialog';
 
 const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
@@ -31,6 +32,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
   const [savedHasKey, setSavedHasKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testError, setTestError] = useState<AiErrorCode | null>(null);
+  const [testSucceeded, setTestSucceeded] = useState(false);
 
   useEffect(() => {
     AiConfigRepository.getConfig().then((config) => {
@@ -46,6 +48,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
     setModel('');
     setApiKey('');
     setTestError(null);
+    setTestSucceeded(false);
     AiConfigRepository.clearApiKey();
     setSavedHasKey(false);
   };
@@ -67,13 +70,16 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
   const handleTest = async () => {
     setTesting(true);
     setTestError(null);
+    setTestSucceeded(false);
     try {
       const result = await testAiConnection({
         baseUrl: baseUrl.trim(),
         model: model.trim(),
         apiKey: apiKey || undefined,
       });
-      if (!result.ok && result.code) {
+      if (result.ok) {
+        setTestSucceeded(true);
+      } else if (result.code) {
         setTestError(result.code);
       }
     } finally {
@@ -85,12 +91,20 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
     await AiConfigRepository.clearApiKey();
     setSavedHasKey(false);
     setApiKey('');
+    setTestError(null);
+    setTestSucceeded(false);
+  };
+
+  const handleConfigChange = (setter: (value: string) => void, value: string) => {
+    setter(value);
+    setTestError(null);
+    setTestSucceeded(false);
   };
 
   return (
     <div className='my-4 w-full space-y-6'>
       <div className='w-full'>
-        <h2 className='mb-2 font-medium'>{_('AI Translation')}</h2>
+        <h2 className='mb-2 font-medium'>{_('AI Integration')}</h2>
         <div className='card border-base-200 bg-base-100 border shadow'>
           <div className='divide-base-200 divide-y'>
             <div className='config-item'>
@@ -100,7 +114,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
                 className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 text-sm'
                 placeholder='https://api.openai.com/v1'
                 value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
+                onChange={(e) => handleConfigChange(setBaseUrl, e.target.value)}
                 spellCheck={false}
               />
             </div>
@@ -112,45 +126,52 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
                 className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 text-sm'
                 placeholder='gpt-4o-mini'
                 value={model}
-                onChange={(e) => setModel(e.target.value)}
+                onChange={(e) => handleConfigChange(setModel, e.target.value)}
                 spellCheck={false}
               />
             </div>
 
             <div className='config-item'>
               <span className=''>{_('API Key (optional)')}</span>
-              <div className='flex items-center gap-2'>
+              <div className='relative'>
                 <input
                   type={showKey ? 'text' : 'password'}
-                  className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 text-sm'
+                  className='bg-base-200 h-8 min-h-8 rounded-md border-none px-2 pe-8 text-sm'
                   placeholder={
                     savedHasKey ? _('Saved, enter to replace') : _('Leave empty for no auth')
                   }
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => handleConfigChange(setApiKey, e.target.value)}
                   autoComplete='off'
                   spellCheck={false}
                 />
                 <button
                   type='button'
-                  className='btn btn-ghost btn-sm'
+                  className='text-base-content/60 hover:text-base-content absolute inset-y-0 end-0 flex w-8 items-center justify-center'
+                  aria-label={showKey ? _('Hide API key') : _('Show API key')}
+                  title={showKey ? _('Hide API key') : _('Show API key')}
                   onClick={() => setShowKey((v) => !v)}
                 >
-                  {showKey ? _('Hide') : _('Show')}
+                  {showKey ? <LuEyeOff aria-hidden='true' /> : <LuEye aria-hidden='true' />}
                 </button>
               </div>
             </div>
 
             <div className='config-item'>
               <span className=''>{_('Test Connection')}</span>
-              <button
-                type='button'
-                className='btn btn-primary btn-sm'
-                disabled={testing || !configured}
-                onClick={handleTest}
-              >
-                {testing ? _('Testing...') : _('Test')}
-              </button>
+              <div className='flex items-center gap-2'>
+                {testSucceeded && (
+                  <LuCheck className='text-success' aria-label={_('Connection successful')} />
+                )}
+                <button
+                  type='button'
+                  className='btn btn-primary btn-sm'
+                  disabled={testing || !configured}
+                  onClick={handleTest}
+                >
+                  {testing ? _('Testing...') : _('Test')}
+                </button>
+              </div>
             </div>
 
             <div className='config-item'>
@@ -177,18 +198,6 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
             {configured ? _('AI service configured.') : _('AI service not configured.')}
           </p>
           {testError && <p className='text-red-600'>{_(AI_ERROR_MESSAGES[testError])}</p>}
-          {!testError && !testing && (
-            <p className='text-base-content/50 text-xs'>
-              {_(
-                'Translated source text is sent to the service you configure; reading through a book will progressively send each translated block.',
-              )}
-            </p>
-          )}
-          <p className='text-base-content/50 text-xs'>
-            {_(
-              'API key is stored in plain text in a local file, separate from settings, and is never uploaded to the OpenReadest server.',
-            )}
-          </p>
         </div>
       </div>
     </div>
