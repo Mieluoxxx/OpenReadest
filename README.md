@@ -13,9 +13,10 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 **本项目 (OpenReadest) 是基于原项目 [Readest](https://github.com/readest/readest) 的一个独立 Fork（分支/衍生版本）。**
 
 为了避免混淆，特此说明：
+
 1. **独立性**：本项目与原项目 `readest/readest` 是两个相互独立的项目，拥有不同的更新计划和功能路线。
 2. **功能差异**：本项目在原项目基础上增加了特定的新功能，这些修改仅代表本项目的方向。
-3. **问题反馈**：如果你在使用 *本 Fork 版本* 时遇到问题或有功能建议，请直接在本仓库 (`Mieluoxxx/OpenReadest`) 提出，不要打扰原项目的开发者。
+3. **问题反馈**：如果你在使用 _本 Fork 版本_ 时遇到问题或有功能建议，请直接在本仓库 (`Mieluoxxx/OpenReadest`) 提出，不要打扰原项目的开发者。
 4. **尊重原项目**：原项目的所有荣誉归原作者所有。本项目严格遵循原项目的开源协议 (AGPL-3.0) 进行分发。
 
 感谢原项目 [Readest](https://github.com/readest/readest) 提供的优秀基础！
@@ -36,18 +37,18 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 
 ## 功能对比
 
-| 能力 | 原版 Readest | OpenReadest |
-|:---|:---:|:---:|
-| EPUB/PDF/FB2/MOBI/AZW/CBZ 阅读 | ✅ | ✅ |
-| 批注/书签/进度 | ✅ | ✅ |
-| 多端支持（桌面/移动） | ✅ | ✅ |
-| WebDAV 同步 | 部分 | ✅ 强化 |
-| S3 兼容对象存储同步 | ❌ | ✅ |
-| 朗读（TTS） | ✅ | ✅（本地 Edge TTS） |
-| 云端 AI 朗读（无限） | ✅ | ❌ |
-| 翻译 | ✅（含 DeepL） | ✅（Google / Azure / Yandex） |
-| 账号 / 云空间 / 付费订阅 | ✅ | ❌ |
-| 遥测与错误上报 | 有 | ❌ |
+| 能力                           |  原版 Readest  |          OpenReadest          |
+| :----------------------------- | :------------: | :---------------------------: |
+| EPUB/PDF/FB2/MOBI/AZW/CBZ 阅读 |       ✅       |              ✅               |
+| 批注/书签/进度                 |       ✅       |              ✅               |
+| 多端支持（桌面/移动）          |       ✅       |              ✅               |
+| WebDAV 同步                    |      部分      |            ✅ 强化            |
+| S3 兼容对象存储同步            |       ❌       |              ✅               |
+| 朗读（TTS）                    |       ✅       |      ✅（本地 Edge TTS）      |
+| 云端 AI 朗读（无限）           |       ✅       |              ❌               |
+| 翻译                           | ✅（含 DeepL） | ✅（Google / Azure / Yandex） |
+| 账号 / 云空间 / 付费订阅       |       ✅       |              ❌               |
+| 遥测与错误上报                 |       有       |              ❌               |
 
 > **提示：** 如需体验完整功能（AI 朗读、DeepL 翻译等），建议使用原版 Readest：https://github.com/readest/readest
 
@@ -89,10 +90,11 @@ OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力
 ### 快速上手
 
 ```bash
-git clone --recurse-submodules https://github.com/Mieluoxxx/OpenReadest.git
+git clone https://github.com/Mieluoxxx/OpenReadest.git
 cd OpenReadest
+git submodule update --init --recursive   # 初始化并克隆全部子模块
 pnpm install
-pnpm dev-web        # 浏览器调试，不需要 Rust 工具链
+pnpm dev               # 桌面端开发（需先装好 Rust 工具链）
 ```
 
 桌面端开发需要先装好 Rust（见 [Tauri 环境准备](https://tauri.app/start/prerequisites/)），然后：
@@ -103,9 +105,9 @@ pnpm tauri dev
 
 ### 两个容易踩的坑
 
-1. **必须带 `--recurse-submodules` 克隆。** 本仓库的 `foliate-js` 是 pnpm workspace 成员，
+1. **子模块必须先初始化。** 本仓库的 `foliate-js` 是 pnpm workspace 成员，
    submodule 未初始化时 `pnpm install` 会直接报 `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND`。
-   已经克隆错了也不要重新 clone，补一句 `git submodule update --init --recursive` 就行。
+   按上面步骤执行 `git submodule update --init --recursive` 即可（克隆时也可带 `--recurse-submodules` 一步到位）。
 2. **不要手动改 `public/vendor/` 里的文件。** 那些是 `pnpm setup-vendors` 从
    `pdfjs-dist` 和 simplecc 复制出来的构建产物，已被 gitignore，下次构建会被覆盖。
 

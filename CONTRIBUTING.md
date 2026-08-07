@@ -22,7 +22,7 @@
 | 工具    | 版本    | 说明                                                                                 |
 | :------ | :------ | :----------------------------------------------------------------------------------- |
 | Node.js | >= 22   | 见 `.nvmrc`，`nvm use` 可自动切换                                                    |
-| pnpm    | 11.13.0 | 由 `package.json` 的 `packageManager` 声明，`corepack enable` 后自动使用正确版本     |
+| pnpm    | 11.13.1 | 由 `package.json` 的 `packageManager` 声明，`corepack enable` 后自动使用正确版本     |
 | Rust    | stable  | 仅桌面端/移动端构建需要，见 [Tauri 环境准备](https://tauri.app/start/prerequisites/) |
 
 ### 克隆与安装

@@ -2,7 +2,7 @@
   "name": "@openreadest/monorepo",
   "private": true,
   "repository": "Mieluoxxx/openreadest",
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@11.13.1",
   "engines": {
     "node": ">=22"
   },
