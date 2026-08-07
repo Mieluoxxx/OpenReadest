@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import React from 'react';
-import { Position } from '@/utils/sel';
+import { Position, PositionDir } from '@/utils/sel';
 import { BookNote, HighlightColor, HighlightStyle } from '@/types/book';
 import Popup from '@/components/Popup';
 import AnnotationToolButton from './AnnotationToolButton';
@@ -46,6 +46,8 @@ const AnnotationPopup: React.FC<AnnotationPopupProps> = ({
   onHighlight,
   onDismiss,
 }) => {
+  const tooltipPosition: PositionDir = trianglePosition.dir ?? (isVertical ? 'right' : 'down');
+
   return (
     <div dir={dir}>
       <Popup
@@ -65,6 +67,7 @@ const AnnotationPopup: React.FC<AnnotationPopupProps> = ({
           <div
             className={clsx(
               'selection-buttons flex h-full w-full items-center justify-between p-2',
+              'lg:overflow-visible',
               isVertical ? 'flex-col overflow-y-auto' : 'flex-row overflow-x-auto',
               notes.length > 0 && 'hidden',
             )}
@@ -77,6 +80,7 @@ const AnnotationPopup: React.FC<AnnotationPopupProps> = ({
                   key={index}
                   showTooltip={!highlightOptionsVisible}
                   tooltipText={button.tooltipText}
+                  tooltipPosition={tooltipPosition}
                   Icon={button.Icon}
                   onClick={button.onClick}
                   disabled={button.disabled}

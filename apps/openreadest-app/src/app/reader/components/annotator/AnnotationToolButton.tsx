@@ -1,9 +1,18 @@
 import clsx from 'clsx';
 import React, { useState } from 'react';
+import { PositionDir } from '@/utils/sel';
+
+const tooltipPositionClasses: Record<PositionDir, string> = {
+  up: 'lg:tooltip-top',
+  down: 'lg:tooltip-bottom',
+  left: 'lg:tooltip-left',
+  right: 'lg:tooltip-right',
+};
 
 interface AnnotationToolButtonProps {
   showTooltip: boolean;
   tooltipText: string;
+  tooltipPosition: PositionDir;
   disabled?: boolean;
   Icon: React.ElementType;
   onClick: () => void;
@@ -12,6 +21,7 @@ interface AnnotationToolButtonProps {
 const AnnotationToolButton: React.FC<AnnotationToolButtonProps> = ({
   showTooltip,
   tooltipText,
+  tooltipPosition,
   disabled,
   Icon,
   onClick,
@@ -23,11 +33,12 @@ const AnnotationToolButton: React.FC<AnnotationToolButtonProps> = ({
   };
   return (
     <div
-      className='lg:tooltip lg:tooltip-bottom'
-      title={!buttonClicked && showTooltip ? tooltipText : undefined}
+      className={clsx('lg:tooltip', tooltipPositionClasses[tooltipPosition])}
+      data-tip={!buttonClicked && showTooltip ? tooltipText : undefined}
     >
       <button
         onClick={handleClick}
+        aria-label={tooltipText}
         className={clsx(
           'flex h-8 min-h-8 w-8 items-center justify-center p-0',
           disabled
