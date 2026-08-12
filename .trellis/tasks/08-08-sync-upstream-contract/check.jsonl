@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/08-08-sync-upstream-contract/research/architecture-audit.md","reason":"Audit baseline for checking removed concepts, target layout, and macOS portability"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Review checklist for writers, parsers, templates, tests, and update behavior"}
+{"file":".agents/skills/maintain-open-source-downstream/references/validation.md","reason":"Existing evidence and risk-tier requirements that must survive the structural simplification"}
+{"file":".agents/skills/trellis-meta/references/local-architecture/generated-files.md","reason":"Verify the implementation does not modify Trellis-managed runtime state or template hashes"}

@@ -12,5 +12,7 @@ staged=$(git diff --cached --name-only --diff-filter=ACMR |
 
 [ -z "$staged" ] && exit 0
 
-echo "$staged" | xargs pnpm exec prettier --write --ignore-unknown
-echo "$staged" | xargs git add
+# NUL-delimit the file list so paths containing spaces (e.g.
+# ".trellis/workspace/Morgan Woods/...") are passed as single arguments.
+printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 pnpm exec prettier --write --ignore-unknown
+printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 git add

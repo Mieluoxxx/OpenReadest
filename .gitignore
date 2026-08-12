@@ -56,3 +56,6 @@ result*
 
 # codegraph daemon runtime
 .codegraph/
+
+# pi subagent runtime artifacts (may contain API keys in transcripts)
+.pi-subagents/

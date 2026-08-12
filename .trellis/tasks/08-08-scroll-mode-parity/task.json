@@ -1,0 +1,33 @@
+{
+  "id": "scroll-mode-parity",
+  "name": "scroll-mode-parity",
+  "title": "Readest scroll mode parity",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "Morgan Woods",
+  "assignee": "Morgan Woods",
+  "createdAt": "2026-08-08",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-08-scroll-renderer-baseline",
+    "08-08-epub-scroll-paginator",
+    "08-08-pdf-fixed-layout-scroll",
+    "08-08-scroll-input-autoscroll",
+    "08-08-scroll-reader-integrations",
+    "08-08-scroll-parity-validation"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

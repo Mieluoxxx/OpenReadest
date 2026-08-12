@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/08-08-sync-upstream-contract/research/architecture-audit.md","reason":"Confirmed current model, Trellis ownership boundaries, portability failures, and agreed target layout"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-file template/parser/test consistency guidance for the contract schema refactor"}
+{"file":".agents/skills/maintain-open-source-downstream/references/project-contract.md","reason":"Existing contract and generated-runtime behavior that the implementation must deliberately replace"}
+{"file":".agents/skills/trellis-meta/references/local-architecture/generated-files.md","reason":"Trellis-managed versus project-owned file boundaries under .trellis"}
