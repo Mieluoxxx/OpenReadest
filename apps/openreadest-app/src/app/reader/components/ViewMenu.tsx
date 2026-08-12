@@ -19,6 +19,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { getStyles } from '@/utils/style';
 import { getMaxInlineSize } from '@/utils/config';
 import { saveViewSettings } from '@/helpers/settings';
+import { eventDispatcher } from '@/utils/event';
 import { tauriHandleToggleFullScreen } from '@/utils/window';
 import MenuItem from '@/components/MenuItem';
 import Menu from '@/components/Menu';
@@ -33,9 +34,10 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
   const { envConfig, appService } = useEnv();
   const { getBookData } = useBookDataStore();
   const { setSettingsDialogOpen, setSettingsDialogBookKey } = useSettingsStore();
-  const { getView, getViewSettings, setViewSettings } = useReaderStore();
+  const { getView, getViewSettings, setViewSettings, getViewState } = useReaderStore();
   const bookData = getBookData(bookKey)!;
   const viewSettings = getViewSettings(bookKey)!;
+  const viewState = getViewState(bookKey);
 
   const { themeMode, isDarkMode, setThemeMode } = useThemeStore();
   const [isScrolledMode, setScrolledMode] = useState(viewSettings!.scrolled);
@@ -54,6 +56,11 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
   const zoomOut = () => setZoomLevel((prev) => Math.max(prev - ZOOM_STEP, MIN_ZOOM_LEVEL));
   const resetZoom = () => setZoomLevel(100);
   const toggleScrolledMode = () => setScrolledMode(!isScrolledMode);
+
+  const toggleAutoScroll = () => {
+    setIsDropdownOpen?.(false);
+    eventDispatcher.dispatch('autoscroll-toggle', { bookKey });
+  };
 
   const openFontLayoutMenu = () => {
     setIsDropdownOpen?.(false);
@@ -289,6 +296,14 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
           onClick={toggleScrolledMode}
         />
       )}
+
+      <MenuItem
+        label={_('Auto Scroll')}
+        shortcut='Shift+A'
+        Icon={viewState?.autoScrollEnabled ? MdCheck : undefined}
+        onClick={toggleAutoScroll}
+        disabled={!isScrolledMode}
+      />
 
       <hr aria-hidden='true' className='border-base-300 my-1' />
 
