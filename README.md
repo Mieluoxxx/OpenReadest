@@ -4,7 +4,7 @@
 
 # OpenReadest
 
-OpenReadest 是基于 Readest 的非官方 Fork，重点保留本地阅读能力，并新增或强化 WebDAV 与 S3 兼容对象存储同步能力。上游项目 Readest： https://github.com/readest/readest 。
+OpenReadest 是基于 Readest 的非官方 Fork（直接上游：https://github.com/readest/readest ），重点保留本地阅读能力，并新增或强化 WebDAV 与 S3 兼容对象存储同步能力。
 
 本项目遵循 AGPL-3.0 许可证发布，并保留上游项目与第三方组件的版权和许可证声明。
 
@@ -155,3 +155,7 @@ pnpm tauri dev
 ## 发布说明
 
 公开仓库默认不提交打包产物、构建缓存与本地生成目录。最终发布前请通过独立构建流程生成 Windows 与 Android 安装包。
+
+## 致谢
+
+特别感谢 [luyishui/OpenReadest](https://github.com/luyishui/OpenReadest) 及其作者 luyishui：OpenReadest 这一项目名称与最初方向（保留本地阅读能力、支持 WebDAV 同步）源于该项目，本仓库在此基础上继续演进。
