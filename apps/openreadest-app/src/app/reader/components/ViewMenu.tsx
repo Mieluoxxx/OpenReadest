@@ -7,6 +7,7 @@ import { MdZoomOut, MdZoomIn, MdCheck } from 'react-icons/md';
 import { IoMdExpand } from 'react-icons/io';
 import { TbArrowAutofitWidth } from 'react-icons/tb';
 import { TbColumns1, TbColumns2 } from 'react-icons/tb';
+import { TbCarouselVertical, TbCarouselHorizontal } from 'react-icons/tb';
 
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '@/services/constants';
 import { useEnv } from '@/context/EnvContext';
@@ -38,6 +39,9 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
 
   const { themeMode, isDarkMode, setThemeMode } = useThemeStore();
   const [isScrolledMode, setScrolledMode] = useState(viewSettings!.scrolled);
+  const [scrolledDirection, setScrolledDirection] = useState(
+    viewSettings!.scrolledDirection ?? 'vertical',
+  );
   const [zoomLevel, setZoomLevel] = useState(viewSettings!.zoomLevel!);
   const [zoomMode, setZoomMode] = useState(viewSettings!.zoomMode!);
   const [spreadMode, setSpreadMode] = useState(viewSettings!.spreadMode!);
@@ -79,6 +83,17 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
     setViewSettings(bookKey, viewSettings!);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScrolledMode]);
+
+  // Per-book persistence only (skipGlobal): scrolledDirection is meaningful
+  // solely for fixed-layout (pre-paginated) books, so it must never bleed into
+  // the global view settings of reflowable books (upstream readest #5485). The
+  // renderer attribute is applied by FoliateViewer (single owner), which
+  // re-runs its margin/gap effect on viewSettings.scrolledDirection changes.
+  useEffect(() => {
+    if (scrolledDirection === (viewSettings!.scrolledDirection ?? 'vertical')) return;
+    saveViewSettings(envConfig, bookKey, 'scrolledDirection', scrolledDirection, true, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrolledDirection]);
 
   useEffect(() => {
     saveViewSettings(envConfig, bookKey, 'zoomLevel', zoomLevel, true, true);
@@ -180,23 +195,55 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
             >
               <button
                 title={_('Single Page')}
-                onClick={setSpreadMode.bind(null, 'none')}
+                onClick={() => {
+                  setSpreadMode('none');
+                  if (isScrolledMode) setScrolledMode(false);
+                }}
                 className={clsx(
                   'hover:bg-base-300 text-base-content rounded-full p-2',
-                  spreadMode === 'none' && 'bg-base-300/75',
+                  !isScrolledMode && spreadMode === 'none' && 'bg-base-300/75',
                 )}
               >
                 <TbColumns1 />
               </button>
               <button
                 title={_('Auto Spread')}
-                onClick={setSpreadMode.bind(null, 'auto')}
+                onClick={() => {
+                  setSpreadMode('auto');
+                  if (isScrolledMode) setScrolledMode(false);
+                }}
                 className={clsx(
                   'hover:bg-base-300 text-base-content rounded-full p-2',
-                  spreadMode === 'auto' && 'bg-base-300/75',
+                  !isScrolledMode && spreadMode === 'auto' && 'bg-base-300/75',
                 )}
               >
                 <TbColumns2 />
+              </button>
+              <button
+                title={_('Vertical Scrolling')}
+                onClick={() => {
+                  setScrolledDirection('vertical');
+                  if (!isScrolledMode) setScrolledMode(true);
+                }}
+                className={clsx(
+                  'hover:bg-base-300 text-base-content rounded-full p-2',
+                  isScrolledMode && scrolledDirection === 'vertical' && 'bg-base-300/75',
+                )}
+              >
+                <TbCarouselVertical />
+              </button>
+              <button
+                title={_('Horizontal Scrolling')}
+                onClick={() => {
+                  setScrolledDirection('horizontal');
+                  if (!isScrolledMode) setScrolledMode(true);
+                }}
+                className={clsx(
+                  'hover:bg-base-300 text-base-content rounded-full p-2',
+                  isScrolledMode && scrolledDirection === 'horizontal' && 'bg-base-300/75',
+                )}
+              >
+                <TbCarouselHorizontal />
               </button>
               <div className='bg-base-300 mx-2 h-6 w-[1px]' />
               <button
@@ -234,13 +281,14 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
 
       <MenuItem label={_('Font & Layout')} shortcut='Shift+F' onClick={openFontLayoutMenu} />
 
-      <MenuItem
-        label={_('Scrolled Mode')}
-        shortcut='Shift+J'
-        Icon={isScrolledMode ? MdCheck : undefined}
-        onClick={toggleScrolledMode}
-        disabled={bookData.isFixedLayout}
-      />
+      {!bookData.isFixedLayout && (
+        <MenuItem
+          label={_('Scrolled Mode')}
+          shortcut='Shift+J'
+          Icon={isScrolledMode ? MdCheck : undefined}
+          onClick={toggleScrolledMode}
+        />
+      )}
 
       <hr aria-hidden='true' className='border-base-300 my-1' />
 

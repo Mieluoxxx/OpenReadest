@@ -131,3 +131,67 @@ describe('viewPagination paginated mode', () => {
     expect(view.prev).toHaveBeenCalledWith();
   });
 });
+
+describe('viewPagination pan branch (zoomed fixed layout, upstream parity)', () => {
+  // A paginated fixed-layout view that can report per-axis overflow.
+  const makePanView = (overflow: { x?: boolean; y?: boolean } = {}, scrolled = false) =>
+    makeView({
+      book: makeBook('ltr', 'pre-paginated'),
+      renderer: { scrolled } as unknown as FoliateView['renderer'],
+      isOverflowX: () => overflow.x ?? false,
+      isOverflowY: () => overflow.y ?? false,
+      pan: vi.fn(),
+    });
+
+  const zoomedSettings = (overrides: Partial<ViewSettings> = {}) =>
+    makeSettings({
+      scrolled: false,
+      zoomLevel: 150,
+      zoomMode: 'fit-width',
+      ...overrides,
+    });
+
+  it('pans horizontally on left/right when zoomed and overflowing on X', () => {
+    const view = makePanView({ x: true });
+    const settings = zoomedSettings();
+    viewPagination(view, settings, 'left', 'pan');
+    expect(view.pan).toHaveBeenCalledWith(-50, 0);
+    viewPagination(view, settings, 'right', 'pan');
+    expect(view.pan).toHaveBeenCalledWith(50, 0);
+    expect(view.next).not.toHaveBeenCalled();
+    expect(view.prev).not.toHaveBeenCalled();
+  });
+
+  it('pans vertically on up/down when zoomed and overflowing on Y', () => {
+    const view = makePanView({ y: true });
+    const settings = zoomedSettings();
+    viewPagination(view, settings, 'up', 'pan');
+    expect(view.pan).toHaveBeenCalledWith(0, -50);
+    viewPagination(view, settings, 'down', 'pan');
+    expect(view.pan).toHaveBeenCalledWith(0, 50);
+  });
+
+  it('falls back to a page turn when the requested axis has no overflow', () => {
+    const view = makePanView({ y: true });
+    const settings = zoomedSettings();
+    viewPagination(view, settings, 'left', 'pan');
+    expect(view.pan).not.toHaveBeenCalled();
+    expect(view.prev).toHaveBeenCalled();
+  });
+
+  it('does not pan at zoomLevel 100 with fit-page zoomMode', () => {
+    const view = makePanView({ x: true, y: true });
+    const settings = zoomedSettings({ zoomLevel: 100, zoomMode: 'fit-page' });
+    viewPagination(view, settings, 'left', 'pan');
+    expect(view.pan).not.toHaveBeenCalled();
+    expect(view.prev).toHaveBeenCalled();
+  });
+
+  it('never pans while scrolled even when zoomed (scroll owns the gesture)', () => {
+    const view = makePanView({ x: true }, true);
+    const settings = zoomedSettings({ scrolled: true });
+    viewPagination(view, settings, 'left', 'pan');
+    expect(view.pan).not.toHaveBeenCalled();
+    expect(view.prev).toHaveBeenCalled();
+  });
+});

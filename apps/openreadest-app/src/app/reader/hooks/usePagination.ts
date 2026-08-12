@@ -291,6 +291,11 @@ export const usePagination = (
       } else if (
         msg.type === 'touch-swipe' &&
         bookData.isFixedLayout &&
+        // In scrolled mode native scrolling owns the gesture: the renderer's
+        // scroll container handles horizontal (and vertical) swipes itself, so
+        // forwarding them to viewPagination would turn pages on top of the
+        // scroll (upstream keeps swipes out of page turns whenever scrolled).
+        !viewSettings?.scrolled &&
         !isPanningView(viewRef.current, viewSettings)
       ) {
         const { deltaX, deltaY, deltaT } = msg.detail;

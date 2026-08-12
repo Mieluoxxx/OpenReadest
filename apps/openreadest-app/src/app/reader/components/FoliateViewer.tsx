@@ -432,7 +432,10 @@ const FoliateViewer: React.FC<{
       const headerVisible = showTopHeader && viewSettings.showBarsOnScroll;
       const footerVisible = showBottomFooter && viewSettings.showBarsOnScroll;
       const safeBottomPadding = appService?.hasSafeAreaInset ? gridInsets.bottom * 0.33 : 0;
-      const footerBarHeight = safeBottomPadding + 52; // FooterBar h-[52px]
+      // The scrolled-mode footer inset follows the configured footer margin
+      // (upstream readest `footerBarHeight = safeBottomPadding +
+      // viewSettings.marginBottomPx`), not a hardcoded bar height.
+      const footerBarHeight = safeBottomPadding + viewSettings.marginBottomPx;
       const scrollTop = headerVisible ? topMargin : 0;
       const scrollBottom = footerVisible ? Math.max(footerBarHeight, ttsBarHeight) : ttsBarHeight;
       setScrollMargins({ top: bookData?.isFixedLayout ? 0 : scrollTop, bottom: scrollBottom });
@@ -527,6 +530,7 @@ const FoliateViewer: React.FC<{
     viewState?.ttsEnabled,
     viewSettings?.scrolled,
     viewSettings?.noContinuousScroll,
+    viewSettings?.scrolledDirection,
   ]);
 
   return (
