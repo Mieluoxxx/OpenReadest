@@ -27,7 +27,7 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
   const viewSettings = getViewSettings(bookKey) || settings.globalViewSettings;
 
   const [isScrolledMode, setScrolledMode] = useState(viewSettings.scrolled);
-  const [isContinuousScroll, setIsContinuousScroll] = useState(viewSettings.continuousScroll);
+  const [noContinuousScroll, setNoContinuousScroll] = useState(viewSettings.noContinuousScroll);
   const [scrollingOverlap, setScrollingOverlap] = useState(viewSettings.scrollingOverlap);
   const [volumeKeysToFlip, setVolumeKeysToFlip] = useState(viewSettings.volumeKeysToFlip);
   const [isDisableClick, setIsDisableClick] = useState(viewSettings.disableClick);
@@ -51,7 +51,7 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
   const handleReset = () => {
     resetToDefaults({
       scrolled: setScrolledMode,
-      continuousScroll: setIsContinuousScroll,
+      noContinuousScroll: setNoContinuousScroll,
       scrollingOverlap: setScrollingOverlap,
       volumeKeysToFlip: setVolumeKeysToFlip,
       disableClick: setIsDisableClick,
@@ -84,9 +84,15 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
   }, [isScrolledMode]);
 
   useEffect(() => {
-    saveViewSettings(envConfig, bookKey, 'continuousScroll', isContinuousScroll, false, false);
+    if (noContinuousScroll === viewSettings.noContinuousScroll) return;
+    saveViewSettings(envConfig, bookKey, 'noContinuousScroll', noContinuousScroll);
+    if (noContinuousScroll) {
+      getView(bookKey)?.renderer.setAttribute('no-continuous-scroll', '');
+    } else {
+      getView(bookKey)?.renderer.removeAttribute('no-continuous-scroll');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isContinuousScroll]);
+  }, [noContinuousScroll]);
 
   useEffect(() => {
     if (scrollingOverlap === viewSettings.scrollingOverlap) return;
@@ -214,13 +220,13 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
               />
             </div>
             <div className='config-item'>
-              <span className=''>{_('Continuous Scroll')}</span>
+              <span className=''>{_('Single Section Scroll')}</span>
               <input
                 type='checkbox'
                 className='toggle'
-                checked={isContinuousScroll}
-                disabled={bookData?.isFixedLayout}
-                onChange={() => setIsContinuousScroll(!isContinuousScroll)}
+                checked={noContinuousScroll}
+                disabled={!viewSettings.scrolled}
+                onChange={() => setNoContinuousScroll(!noContinuousScroll)}
               />
             </div>
             <NumberInput
