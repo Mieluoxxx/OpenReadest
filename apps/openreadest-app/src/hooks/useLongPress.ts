@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 interface UseLongPressOptions {
   onTap?: () => void;
   onLongPress?: () => void;
-  onContextMenu?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   onCancel?: () => void;
   threshold?: number;
   moveThreshold?: number;
@@ -136,7 +136,7 @@ export const useLongPress = (
       if (onContextMenu) {
         e.preventDefault();
         e.stopPropagation();
-        onContextMenu();
+        onContextMenu(e);
       }
       reset();
     },

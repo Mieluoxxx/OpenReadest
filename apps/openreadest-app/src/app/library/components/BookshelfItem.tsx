@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { navigateToLibrary, navigateToReader, showReaderWindow } from '@/utils/nav';
 import { useEnv } from '@/context/EnvContext';
@@ -7,7 +7,9 @@ import { useLibraryStore } from '@/store/libraryStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useLongPress } from '@/hooks/useLongPress';
-import { Menu, MenuItem } from '@tauri-apps/api/menu';
+import ContextMenu from '@/components/ContextMenu';
+import Menu from '@/components/Menu';
+import MenuItem from '@/components/MenuItem';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { eventDispatcher } from '@/utils/event';
 import { getOSPlatform } from '@/utils/misc';
@@ -179,104 +181,15 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
     [isSelectMode, searchParams],
   );
 
-  const bookContextMenuHandler = async (book: Book) => {
-    if (!appService?.hasContextMenu) return;
-    const osPlatform = getOSPlatform();
-    const fileRevealLabel =
-      FILE_REVEAL_LABELS[osPlatform as FILE_REVEAL_PLATFORMS] || FILE_REVEAL_LABELS.default;
-    const selectBookMenuItem = await MenuItem.new({
-      text: itemSelected ? _('Deselect Book') : _('Select Book'),
-      action: async () => {
-        if (!isSelectMode) handleSetSelectMode(true);
-        toggleSelection(book.hash);
-      },
-    });
-    const groupBooksMenuItem = await MenuItem.new({
-      text: _('Group Books'),
-      action: async () => {
-        if (!isSelectMode) handleSetSelectMode(true);
-        if (!itemSelected) {
-          toggleSelection(book.hash);
-        }
-        handleGroupBooks();
-      },
-    });
-    const showBookInFinderMenuItem = await MenuItem.new({
-      text: _(fileRevealLabel),
-      action: async () => {
-        const folder = `${settings.localBooksDir}/${book.hash}`;
-        revealItemInDir(folder);
-      },
-    });
-    const showBookDetailsMenuItem = await MenuItem.new({
-      text: _('Show Book Details'),
-      action: async () => {
-        showBookDetailsModal(book);
-      },
-    });
-    const downloadBookMenuItem = await MenuItem.new({
-      text: _('Download Book'),
-      action: async () => {
-        handleBookDownload(book, { queued: true });
-      },
-    });
-    const uploadBookMenuItem = await MenuItem.new({
-      text: _('Upload Book'),
-      action: async () => {
-        handleBookUpload(book);
-      },
-    });
-    const deleteBookMenuItem = await MenuItem.new({
-      text: _('Delete'),
-      action: async () => {
-        eventDispatcher.dispatch('delete-books', { ids: [book.hash] });
-      },
-    });
-    const menu = await Menu.new();
-    menu.append(selectBookMenuItem);
-    menu.append(groupBooksMenuItem);
-    menu.append(showBookDetailsMenuItem);
-    menu.append(showBookInFinderMenuItem);
-    if (book.uploadedAt && !book.downloadedAt) {
-      menu.append(downloadBookMenuItem);
-    }
-    if (!book.uploadedAt && book.downloadedAt) {
-      menu.append(uploadBookMenuItem);
-    }
-    menu.append(deleteBookMenuItem);
-    menu.popup();
-  };
+  const [contextMenu, setContextMenu] = useState<{
+    item: Book | BooksGroup;
+    x: number;
+    y: number;
+  } | null>(null);
 
-  const groupContextMenuHandler = async (group: BooksGroup) => {
-    if (!appService?.hasContextMenu) return;
-    const selectGroupMenuItem = await MenuItem.new({
-      text: itemSelected ? _('Deselect Group') : _('Select Group'),
-      action: async () => {
-        if (!isSelectMode) handleSetSelectMode(true);
-        toggleSelection(group.id);
-      },
-    });
-    const groupBooksMenuItem = await MenuItem.new({
-      text: _('Group Books'),
-      action: async () => {
-        if (!isSelectMode) handleSetSelectMode(true);
-        if (!itemSelected) {
-          toggleSelection(group.id);
-        }
-        handleGroupBooks();
-      },
-    });
-    const deleteGroupMenuItem = await MenuItem.new({
-      text: _('Delete'),
-      action: async () => {
-        eventDispatcher.dispatch('delete-books', { ids: [group.id] });
-      },
-    });
-    const menu = await Menu.new();
-    menu.append(selectGroupMenuItem);
-    menu.append(groupBooksMenuItem);
-    menu.append(deleteGroupMenuItem);
-    menu.popup();
+  // 门禁在调用点（useLongPress.onContextMenu / handleKeyDown）判断，避免 throttle 闭包捕获陈旧 appService
+  const openContextMenu = (x: number, y: number) => {
+    setContextMenu({ item, x, y });
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -309,17 +222,12 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
     }, 100),
     [handleSelectItem, handleBookClick, handleGroupClick],
   );
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleContextMenu = useCallback(
-    throttle(() => {
-      if ('format' in item) {
-        bookContextMenuHandler(item as Book);
-      } else {
-        groupContextMenuHandler(item as BooksGroup);
-      }
+    throttle((e: React.MouseEvent) => {
+      openContextMenu(e.clientX, e.clientY);
     }, 100),
-    [itemSelected, settings.localBooksDir],
+    [item],
   );
 
   const { pressing, handlers } = useLongPress(
@@ -330,9 +238,9 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
       onTap: () => {
         handleOpenItem();
       },
-      onContextMenu: () => {
+      onContextMenu: (e: React.MouseEvent) => {
         if (appService?.hasContextMenu) {
-          handleContextMenu();
+          handleContextMenu(e);
         } else if (appService?.isAndroidApp) {
           handleSelectItem();
         }
@@ -348,7 +256,9 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
     }
     if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
       e.preventDefault();
-      handleContextMenu();
+      if (!appService?.hasContextMenu) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      openContextMenu(rect.left + rect.width / 2, rect.top + rect.height / 2);
     }
   };
 
@@ -395,6 +305,123 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
           )}
         </div>
       </div>
+      {contextMenu &&
+        (() => {
+          const menuItem = contextMenu.item;
+          return (
+            <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={() => setContextMenu(null)}>
+              <Menu
+                className='menu-content dropdown-content shadow-2xl'
+                onCancel={() => setContextMenu(null)}
+              >
+                {'format' in menuItem ? (
+                  <>
+                    <MenuItem
+                      noIcon
+                      label={itemSelected ? _('Deselect Book') : _('Select Book')}
+                      onClick={() => {
+                        if (!isSelectMode) handleSetSelectMode(true);
+                        toggleSelection(menuItem.hash);
+                        setContextMenu(null);
+                      }}
+                    />
+                    <MenuItem
+                      noIcon
+                      label={_('Group Books')}
+                      onClick={() => {
+                        if (!isSelectMode) handleSetSelectMode(true);
+                        if (!itemSelected) {
+                          toggleSelection(menuItem.hash);
+                        }
+                        handleGroupBooks();
+                        setContextMenu(null);
+                      }}
+                    />
+                    <MenuItem
+                      noIcon
+                      label={_('Show Book Details')}
+                      onClick={() => {
+                        showBookDetailsModal(menuItem);
+                        setContextMenu(null);
+                      }}
+                    />
+                    <MenuItem
+                      noIcon
+                      label={_(
+                        FILE_REVEAL_LABELS[getOSPlatform() as FILE_REVEAL_PLATFORMS] ||
+                          FILE_REVEAL_LABELS.default,
+                      )}
+                      onClick={() => {
+                        revealItemInDir(`${settings.localBooksDir}/${menuItem.hash}`);
+                        setContextMenu(null);
+                      }}
+                    />
+                    {menuItem.uploadedAt && !menuItem.downloadedAt && (
+                      <MenuItem
+                        noIcon
+                        label={_('Download Book')}
+                        onClick={() => {
+                          handleBookDownload(menuItem, { queued: true });
+                          setContextMenu(null);
+                        }}
+                      />
+                    )}
+                    {!menuItem.uploadedAt && menuItem.downloadedAt && (
+                      <MenuItem
+                        noIcon
+                        label={_('Upload Book')}
+                        onClick={() => {
+                          handleBookUpload(menuItem);
+                          setContextMenu(null);
+                        }}
+                      />
+                    )}
+                    <MenuItem
+                      noIcon
+                      label={_('Delete')}
+                      onClick={() => {
+                        eventDispatcher.dispatch('delete-books', { ids: [menuItem.hash] });
+                        setContextMenu(null);
+                      }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <MenuItem
+                      noIcon
+                      label={itemSelected ? _('Deselect Group') : _('Select Group')}
+                      onClick={() => {
+                        if (!isSelectMode) handleSetSelectMode(true);
+                        toggleSelection(menuItem.id);
+                        setContextMenu(null);
+                      }}
+                    />
+                    <MenuItem
+                      noIcon
+                      label={_('Group Books')}
+                      onClick={() => {
+                        if (!isSelectMode) handleSetSelectMode(true);
+                        if (!itemSelected) {
+                          toggleSelection(menuItem.id);
+                        }
+                        handleGroupBooks();
+                        setContextMenu(null);
+                      }}
+                    />
+                    <MenuItem
+                      noIcon
+                      label={_('Delete')}
+                      onClick={() => {
+                        eventDispatcher.dispatch('delete-books', { ids: [menuItem.id] });
+                        setContextMenu(null);
+                      }}
+                    />
+                  </>
+                )}
+              </Menu>
+            </ContextMenu>
+          );
+        })()}
     </div>
   );
 };
