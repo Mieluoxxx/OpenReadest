@@ -128,6 +128,7 @@ const getColorStyles = (
     html, body {
       color: ${fg};
     }
+    ${isEink ? getEinkSelectionStyles() : ''}
     html[has-background], body[has-background] {
       --background-set: var(--theme-bg-color);
     }
