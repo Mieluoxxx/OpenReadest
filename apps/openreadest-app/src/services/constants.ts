@@ -152,7 +152,13 @@ export const DEFAULT_BOOK_LAYOUT: BookLayout = {
   swapClickArea: false,
   disableDoubleClick: false,
   volumeKeysToFlip: false,
+  // Legacy field; new writes use noContinuousScroll below.
   continuousScroll: false,
+  noContinuousScroll: false,
+  scrolledDirection: 'vertical',
+  webtoonMode: false,
+  hideScrollbar: false,
+  autoScrollSpeed: 100,
   maxColumnCount: 2,
   maxInlineSize: getDefaultMaxInlineSize(),
   maxBlockSize: getDefaultMaxBlockSize(),

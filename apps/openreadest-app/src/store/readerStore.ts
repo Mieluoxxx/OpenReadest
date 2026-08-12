@@ -21,6 +21,7 @@ import { useSettingsStore } from './settingsStore';
 import { useBookDataStore } from './bookDataStore';
 import { useLibraryStore } from './libraryStore';
 import { uniqueId } from '@/utils/misc';
+import { normalizeViewSettings } from '@/utils/viewSettings';
 
 interface ViewState {
   /* Unique key for each book view */
@@ -210,7 +211,10 @@ export const useReaderStore = create<ReaderStore>((set, get) => ({
             ttsEnabled: false,
             syncing: false,
             gridInsets: null,
-            viewSettings: { ...globalViewSettings, ...configViewSettings },
+            viewSettings: normalizeViewSettings(
+              { ...globalViewSettings, ...configViewSettings },
+              configViewSettings,
+            ),
           },
         },
       }));

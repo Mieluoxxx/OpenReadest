@@ -76,7 +76,7 @@ export interface OPDSLink {
       value: string;
     } | null;
     indirectAcquisition?: Array<{ type: string }>;
-    numberOfItems?: string;
+    numberOfItems?: number;
   };
 }
 
@@ -104,7 +104,7 @@ export interface OPDSNavigationItem extends Partial<OPDSLink> {
 interface OPDSGroup {
   metadata: {
     title?: string;
-    numberOfItems?: string;
+    numberOfItems?: number;
   };
   links: Array<{ rel: string; href: string; type?: string }>;
   publications?: OPDSPublication[];

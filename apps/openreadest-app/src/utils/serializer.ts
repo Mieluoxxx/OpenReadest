@@ -1,4 +1,5 @@
 import { BookConfig, BookSearchConfig, ViewSettings } from '@/types/book';
+import { normalizeViewSettings } from '@/utils/viewSettings';
 
 export const serializeConfig = (
   config: BookConfig,
@@ -37,7 +38,14 @@ export const deserializeConfig = (
 ): BookConfig => {
   const config = JSON.parse(str) as BookConfig;
   const { viewSettings, searchConfig } = config;
-  config.viewSettings = { ...globalViewSettings, ...viewSettings };
+  // Normalize legacy scroll fields (e.g. continuousScroll -> noContinuousScroll)
+  // at the hydration boundary so downstream consumers only see the new model.
+  // The raw per-book object is passed as the source so an explicit legacy
+  // value overrides the global default of the new field.
+  config.viewSettings = normalizeViewSettings(
+    { ...globalViewSettings, ...viewSettings },
+    viewSettings,
+  );
   config.searchConfig = { ...defaultSearchConfig, ...searchConfig };
   config.updatedAt ??= Date.now();
   return config;

@@ -3,16 +3,7 @@ import { TTSHighlightOptions } from '@/services/tts/types';
 import { AnnotationToolType } from './annotator';
 
 export type BookFormat =
-  | 'EPUB'
-  | 'PDF'
-  | 'MOBI'
-  | 'AZW'
-  | 'AZW3'
-  | 'CBZ'
-  | 'FB2'
-  | 'FBZ'
-  | 'TXT'
-  | 'MD';
+  'EPUB' | 'PDF' | 'MOBI' | 'AZW' | 'AZW3' | 'CBZ' | 'FB2' | 'FBZ' | 'TXT' | 'MD';
 export type BookNoteType = 'bookmark' | 'annotation' | 'excerpt';
 export type HighlightStyle = 'highlight' | 'underline' | 'squiggly';
 export type HighlightColor = 'red' | 'yellow' | 'green' | 'blue' | 'violet';
@@ -114,7 +105,15 @@ export interface BookLayout {
   swapClickArea: boolean;
   disableDoubleClick: boolean;
   volumeKeysToFlip: boolean;
+  /** @deprecated Legacy field; use `noContinuousScroll` instead. Kept readable during the compatibility window. */
   continuousScroll: boolean;
+  /** Inverted form of the legacy `continuousScroll`; `true` disables continuous (paginated) scrolling. */
+  noContinuousScroll: boolean;
+  scrolledDirection: 'vertical' | 'horizontal';
+  webtoonMode: boolean;
+  hideScrollbar: boolean;
+  /** Auto Scroll speed as a percentage; 100 = AUTO_SCROLL_BASE_PX_PER_SEC. */
+  autoScrollSpeed: number;
   maxColumnCount: number;
   maxInlineSize: number;
   maxBlockSize: number;
@@ -167,15 +166,7 @@ export interface BookFont {
 }
 
 export type ConvertChineseVariant =
-  | 'none'
-  | 's2t'
-  | 't2s'
-  | 's2tw'
-  | 's2hk'
-  | 's2twp'
-  | 'tw2s'
-  | 'hk2s'
-  | 'tw2sp';
+  'none' | 's2t' | 't2s' | 's2tw' | 's2hk' | 's2twp' | 'tw2s' | 'hk2s' | 'tw2sp';
 
 export interface BookLanguage {
   replaceQuotationMarks: boolean;
@@ -265,7 +256,8 @@ export interface ProofreadRulesConfig {
 }
 
 export interface ViewSettings
-  extends BookLayout,
+  extends
+    BookLayout,
     BookStyle,
     BookFont,
     BookLanguage,
