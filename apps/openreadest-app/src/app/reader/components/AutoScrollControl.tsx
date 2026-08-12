@@ -45,7 +45,11 @@ const AutoScrollControl: React.FC<AutoScrollControlProps> = ({
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHoveredRef = useRef(false);
   const pausedRef = useRef(paused);
-  pausedRef.current = paused;
+  // Latest-value ref: written in an effect (not during render) so the timer
+  // callbacks always read the current pause state; see useAutoScrollSpeedGesture.
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
@@ -68,8 +72,9 @@ const AutoScrollControl: React.FC<AutoScrollControlProps> = ({
 
   useEffect(() => {
     if (paused) {
+      // Pausing also cancels any pending hide; visibility while paused is
+      // derived below so the pill cannot fade mid-pause.
       clearHideTimer();
-      setIsBarVisible(true);
     } else {
       startHideTimer(INITIAL_SHOW_DURATION);
     }
@@ -89,7 +94,7 @@ const AutoScrollControl: React.FC<AutoScrollControlProps> = ({
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [startHideTimer]);
 
-  const isVisible = isBarVisible && hoveredBookKey !== bookKey;
+  const isVisible = (paused || isBarVisible) && hoveredBookKey !== bookKey;
 
   const buttonClass = clsx(
     'flex items-center justify-center rounded-full p-1.5',
