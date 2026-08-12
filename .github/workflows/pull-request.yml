@@ -11,7 +11,7 @@ jobs:
     env:
       RUSTFLAGS: '-C target-cpu=skylake'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'true'
       - name: Install minimal stable with clippy and rustfmt
@@ -39,21 +39,21 @@ jobs:
           - platform: 'web'
           - platform: 'tauri'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'true'
 
       - name: setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
 
       - name: cache Next.js build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: apps/openreadest-app/.next/cache
           key: nextjs-${{ matrix.config.platform }}-${{ github.sha }}-${{ hashFiles('pnpm-lock.yaml') }}

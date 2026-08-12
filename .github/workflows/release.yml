@@ -39,11 +39,11 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -54,7 +54,7 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         if: matrix.config.name == 'android'
       - name: install NDK
         if: matrix.config.name == 'android'
@@ -84,7 +84,7 @@ jobs:
           cp .env.local apps/openreadest-app/.env.local
 
       # 桌面平台：tauri-action 负责构建并上传到 release
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
         if: matrix.config.name != 'android'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
