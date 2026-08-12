@@ -30,7 +30,7 @@ import { getWordCount } from '@/utils/word';
 import { isCfiInLocation } from '@/utils/cfi';
 import { TransformContext } from '@/services/transformers/types';
 import { transformContent } from '@/services/transformService';
-import { getHighlightColorHex } from '../../utils/annotatorUtil';
+import { getHighlightColorHex, supportsProofread } from '../../utils/annotatorUtil';
 import { annotationToolButtons } from './AnnotationTools';
 import AnnotationRangeEditor from './AnnotationRangeEditor';
 import AnnotationPopup from './AnnotationPopup';
@@ -833,6 +833,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   };
 
   const selectionAnnotated = selection?.annotated;
+  const proofreadDisabled = !supportsProofread(bookData.book?.format);
   const toolButtons = annotationToolButtons.map(({ type, label, Icon }) => {
     switch (type) {
       case 'copy':
@@ -876,7 +877,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           tooltipText: _(label),
           Icon,
           onClick: handleProofread,
-          disabled: bookData.book?.format !== 'EPUB',
+          disabled: proofreadDisabled,
         };
       default:
         return { tooltipText: '', Icon, onClick: () => {} };
