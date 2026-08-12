@@ -24,6 +24,8 @@ The application boundary remains `apps/openreadest-app`. The renderer boundary i
 
 ## 2. Migration strategy
 
+**foliate-js version decision (2026-08-12, advisor-reviewed):** `git log f65836f7..29fd7aa` is empty and `29fd7aa` is an ancestor of `f65836f7` → zero fork-local commits, clean ancestor. Strategy is **pin bump `29fd7aad` → `f65836f7` + reader-boundary fallout repair**, not behavior cherry-pick. Re-check `63a2eb1f` reachability (see research gitlink note) before finalizing the bump.
+
 Use behavior-first staged migration:
 
 1. Move the `foliate-js` gitlink from `29fd7aad` to `f65836f` and record the exact renderer contract changes.
@@ -96,3 +98,20 @@ Port tests in layers:
 Every child task records the previous application commit and previous `foliate-js` gitlink. If a stage fails, revert the stage's application changes and restore the prior gitlink before continuing investigation. Do not expose a partially migrated setting combination to users without a deterministic fallback.
 
 The final rollout gate requires targeted tests, full Vitest, lint, type-check/build, and manual smoke checks for EPUB, PDF, fixed-layout, vertical writing, e-ink, and mobile gesture paths.
+
+## 8. Audit unit → child task map
+
+Mapping of research units (research/upstream-scroll-code-audit.md §4) to existing children:
+
+| Audit unit                                                                                                                          | Child task                         | Notes                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| 1. Renderers & paginator (pin bump)                                                                                                 | `08-08-scroll-renderer-baseline`   | hard prerequisite for all others; owns the foliate-js bump decision          |
+| 2. Settings model (+ migration)                                                                                                     | `08-08-scroll-renderer-baseline`   | normalization at hydration boundary; compatibility table §3; migration tests |
+| 3. Reader adapter (viewer wiring, usePagination, scrollable.ts, input listeners)                                                    | `08-08-epub-scroll-paginator`      | EPUB flow + preloading + stabilization                                       |
+| 4. PDF/fixed-layout (horizontal, wheel, zoom/pan)                                                                                   | `08-08-pdf-fixed-layout-scroll`    | depends on 1; shares renderer contracts with 3                               |
+| 5. Input & autoscroll (wheel/touch/middle-click/Auto Scroll/speed gesture)                                                          | `08-08-scroll-input-autoscroll`    | depends on 3 and 4                                                           |
+| 6. Integrations (progress/TTS/annotations/chrome)                                                                                   | `08-08-scroll-reader-integrations` | depends on 3, 4, 5                                                           |
+| 7. Validation (incl. **test infra build**: `vitest.browser.config.mts` + `fixtures/data/sample-alice.epub` + `__tests__/document/`) | `08-08-scroll-parity-validation`   | hidden infra prerequisite — see research §3                                  |
+| — webtoonMode (fit-width + `scroll-gap`)                                                                                            | follow-up task (NOT in wave 1)     | avoid inflating settings-model and fixed-layout scope                        |
+
+Dependency note: `scroll-renderer-baseline` gates all other children; stated in parent prd.md.

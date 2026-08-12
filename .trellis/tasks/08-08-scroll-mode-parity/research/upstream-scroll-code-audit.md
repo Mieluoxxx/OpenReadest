@@ -1,7 +1,9 @@
 # Upstream scroll-mode code audit (codegraph)
 
 Date: 2026-08-12
-Method: local clone of `readest/readest` (HEAD `474403e8`, 2026-08-11) + codegraph index (2,173 files). foliate-js checked out at `f65836f7` (main HEAD; the readest gitlink `63a2eb1f` is unreachable after an upstream force-push — verified against `b1bafcaf` which pinned `f65836f7`).
+Method: local clone of `readest/readest` (HEAD `474403e8`, 2026-08-11) + codegraph index (2,173 files). foliate-js checked out at `f65836f7` (main HEAD).
+
+> **Gitlink note (2026-08-12 verification):** the readest gitlink `63a2eb1f` (commit dated 2026-08-11T15:39:16Z, object still queryable via `gh api repos/readest/foliate-js/commits/63a2eb1f`) is **unreachable via `git fetch`** (server: _not our ref_). Cause unconfirmed — consistent with an upstream force-push that dropped it from all refs. `.gitmodules` URL unchanged; `b1bafcaf` (2026-08-07) pinned `f65836f7`; the API-visible `63a2eb1f` is 4 days newer and may carry post-f65836f7 fixes, so re-check reachability before finalizing the bump commit.
 
 ## 1. Upstream architecture map (readest-app)
 
@@ -59,6 +61,11 @@ Removed upstream: `continuousScroll` (old edge-detection logic) and `showMargins
 
 ## 2. foliate-js delta (OpenReadest `29fd7aa` → upstream `f65836f7`)
 
+### Version strategy decision (2026-08-12, advisor-reviewed)
+
+- `git log --oneline f65836f7..29fd7aa` is **empty** and `git merge-base --is-ancestor 29fd7aa f65836f7` **passes** → OpenReadest's foliate-js has **zero fork-local commits**; it is a clean ancestor of the upstream pin.
+- Strategy: **pin bump `29fd7aa` → `f65836f7` + repair fallout**, NOT behavior cherry-pick. The +2974-line paginator delta is upstream history, not a port. Renderer-baseline cost collapses to fallout repair at the reader boundary. Recorded in design.md §2.
+
 `git diff --stat 29fd7aa..f65836f7`: paginator.js +2974, fixed-layout.js +1253, pdf.js +456, view.js +93 (7 months of upstream evolution; only the scroll-relevant parts are in scope).
 
 ### paginator.js scroll-relevant symbols (f65836f7)
@@ -83,19 +90,21 @@ Removed upstream: `continuousScroll` (old edge-detection logic) and `showMargins
 
 ### Missing files (must port)
 
-| Area       | Upstream file                                                                                                       | Notes                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| utils      | `src/utils/scrollable.ts`                                                                                           | table/equation scroll wrappers             |
-| utils      | `src/utils/webtoon.ts`                                                                                              | `getScrollGapAttr`                         |
-| utils      | `reader/utils/autoscroller.ts`                                                                                      | Autoscroller + PacedScroller (pure logic)  |
-| utils      | `reader/utils/autoScrollSpeedGesture.ts`                                                                            | speed gesture                              |
-| hooks      | `useAutoScroll.ts`                                                                                                  | PacedScroller session                      |
-| hooks      | `useMiddleClickAutoscroll.ts`                                                                                       | middle-click session                       |
-| hooks      | `useAutoScrollSpeedGesture.ts`                                                                                      | speed adjust gesture                       |
-| hooks      | `useRendererInputListeners.ts`                                                                                      | once-per-view input listeners (fixes leak) |
-| components | `AutoScrollControl.tsx`, `AutoscrollIndicator.tsx`, `AutoScrollSpeedOverlay.tsx`                                    | Auto Scroll UI                             |
-| types      | `ViewSettings` fields: `scrolledDirection`, `webtoonMode`, `noContinuousScroll`, `hideScrollbar`, `autoScrollSpeed` | types/book.ts                              |
-| reader     | `iframeEventHandlers` autoscroll armed/tracking flags                                                               | utils/iframeEventHandlers.ts               |
+| Area       | Upstream file                                                                                        | Notes                                      |
+| ---------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| utils      | `src/utils/scrollable.ts`                                                                            | table/equation scroll wrappers             |
+| utils      | `src/utils/webtoon.ts`                                                                               | `getScrollGapAttr`                         |
+| utils      | `reader/utils/autoscroller.ts`                                                                       | Autoscroller + PacedScroller (pure logic)  |
+| utils      | `reader/utils/autoScrollSpeedGesture.ts`                                                             | speed gesture                              |
+| hooks      | `useAutoScroll.ts`                                                                                   | PacedScroller session                      |
+| hooks      | `useMiddleClickAutoscroll.ts`                                                                        | middle-click session                       |
+| hooks      | `useAutoScrollSpeedGesture.ts`                                                                       | speed adjust gesture                       |
+| hooks      | `useRendererInputListeners.ts`                                                                       | once-per-view input listeners (fixes leak) |
+| components | `AutoScrollControl.tsx`, `AutoscrollIndicator.tsx`, `AutoScrollSpeedOverlay.tsx`                     | Auto Scroll UI                             |
+| types      | `ViewSettings` fields: `scrolledDirection`, `noContinuousScroll`, `hideScrollbar`, `autoScrollSpeed` | types/book.ts                              |
+
+> `webtoonMode` (fit-width + `scroll-gap`) is deliberately **out of wave 1**: it is a separate product feature, not scroll parity. Track as follow-up; do not let it inflate the settings-model and fixed-layout subtasks.
+> | reader | `iframeEventHandlers` autoscroll armed/tracking flags | utils/iframeEventHandlers.ts |
 
 ### Existing files with upstream drift (must align)
 
@@ -109,11 +118,17 @@ Removed upstream: `continuousScroll` (old edge-detection logic) and `showMargins
 
 ### Submodule
 
-- OpenReadest foliate-js `29fd7aa` (2026-01-18) → upstream `f65836f7` (or next reachable pin). Scroll-relevant: paginator scrolled rendering/preload/scrollLocked/scrollToAnchor, fixed-layout horizontal scroll, pdf.js scroll support. **Not all 7 months of delta is in scope** — must cherry-pick behavior, not wholesale bump (upstream also carries unrelated changes).
+- OpenReadest foliate-js `29fd7aa` (2026-01-18) → upstream `f65836f7` (or next reachable pin; see gitlink note). Scroll-relevant: paginator scrolled rendering/preload/scrollLocked/scrollToAnchor, fixed-layout horizontal scroll, pdf.js scroll support.
+- Pin bump carries upstream's unrelated 7-month delta too — the reader-boundary fallout repair (settings, types, viewer wiring) is where fork compatibility is re-established; unrelated upstream product code is not ported into `apps/openreadest-app`.
+
+### Test infrastructure gap (validation subtask prerequisite)
+
+- OpenReadest has **no** `vitest.browser.config.mts`, **no** `src/__tests__/fixtures/data/` (upstream carries `sample-alice.epub`), and **no** `__tests__/document/` suite (upstream: paginator-scrolled / stabilization / expand / background-segments, fixed-layout-horizontal-scroll, scroll-wheel browser tests).
+- The validation child must first stand up browser-mode vitest + fixtures — hidden infra work that belongs in its PRD, not as a last-stage surprise.
 
 ## 4. Porting units (replaces/augments inventory scope conclusion)
 
-1. **Renderers & paginator**: foliate-js scrolled-mode behavior (paginator.js, fixed-layout.js horizontal, view.js scrollToAnchor) — submodule pin or upstream port.
+1. **Renderers & paginator**: foliate-js scrolled-mode behavior (paginator.js, fixed-layout.js horizontal, view.js scrollToAnchor) — **pin bump `29fd7aa`→`f65836f7` + fallout repair** (clean ancestor; decision above).
 2. **Settings model**: ViewSettings field additions + config hydration (no upstream migration function exists; introduce at hydration boundary per current architecture doc).
 3. **Reader adapter**: FoliateViewer renderer attributes + setScrollMargins + scrollable.ts wiring; usePagination distance/snap rewrite; useRendererInputListeners (fixes listener leak).
 4. **Input & autoscroll**: autoscroller.ts + useAutoScroll + useMiddleClickAutoscroll + speed gesture + iframeEventHandlers flags.
@@ -122,9 +137,42 @@ Removed upstream: `continuousScroll` (old edge-detection logic) and `showMargins
 
 Cross-cutting: progress save/restore and TTS visibility in scrolled mode depend on renderer `containerPosition`/`scrollToAnchor`; `scrollLocked` must never be overwritten by gesture or Auto Scroll code.
 
-## 5. Open questions
+## 5. Resolved and open questions
+
+Resolved (2026-08-12):
+
+- `ScrollSource` is **dead code upstream** — only its definition remains at `usePagination.ts:23` after `handleContinuousScroll` was removed. Do not port it; drop it from the fork copy.
+- `webtoonMode` — out of wave 1 (see §3).
+- foliate-js strategy — pin bump (see §2).
+- Test infra — must be built (see §3).
+
+Open:
 
 - `useScrollToItem` (sidebar TOC) exists in both; verify drift.
 - `hideScrollbar` default and ControlPanel placement upstream vs fork.
-- Whether to port webtoon mode in the first parity wave (depends on `scroll-gap` attr in fixed-layout.js).
 - pdf.js scroll wheel scheduling (readest#4995) depends on foliate-js pdf.js version; confirm fork pdf.js baseline.
+- Re-check `63a2eb1f` reachability before finalizing the bump (see gitlink note).
+
+## 6. Pre-change baseline matrix (fork behavior today)
+
+Anchor for "parity achieved" — record current OpenReadest behavior before any change:
+
+| Area                   | OpenReadest today (fork point baseline)                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| EPUB scrolled          | `flow=scrolled` + `continuousScroll` edge-detection (`renderer.start/end` + relocate + `view.prev/next`) |
+| Scroll distance        | `size - scrollingOverlap - (showHeader?44:0) - (showFooter?44:0)`                                        |
+| PDF scrolled           | foliate `29fd7aa` behavior; no `scroll-direction`                                                        |
+| Vertical writing / RTL | `scrollProp` axis switch; `swapLeftRight` for RTL pagination                                             |
+| Chrome (header/footer) | `showMarginsOnScroll` user setting; hardcoded 44px deduction                                             |
+| Progress save/restore  | foliate `lastLocation`/CFI path (unchanged surface)                                                      |
+| TTS follow             | `scrollLocked` + `scrollingOverlap` (old contract)                                                       |
+| Annotations/selection  | renderer `scrollLocked` during selection                                                                 |
+
+## 7. Fork invariants (must survive scroll intake)
+
+- WebDAV/S3 sync paths, stores, and UI — untouched.
+- AI translation (OpenAI-compatible / Google / Azure / Yandex) — untouched.
+- Local Edge TTS pipeline — untouched.
+- Removed upstream account/cloud/subscription/telemetry paths must not resurrect.
+- `apps/openreadest-app` naming, data dir `openreadest`, branding — unchanged.
+- Persisted per-book `config.json` fields: `continuousScroll`/`showMarginsOnScroll` are user-visible settings; migration must be deterministic and reversible (see design.md §3 compatibility table).

@@ -65,16 +65,18 @@ Port relevant upstream tests, add OpenReadest-specific compatibility tests, vali
 
 ## Child task map and dependencies
 
-1. `08-08-scroll-renderer-baseline`: renderer gitlink, settings model, compatibility normalization.
+1. `08-08-scroll-renderer-baseline`: foliate-js pin bump (`29fd7aa` → `f65836f7`; clean-ancestor decision in research §2), settings model + compatibility normalization. **Hard prerequisite for every other child** — no other child starts until the bump and settings model land.
 2. `08-08-epub-scroll-paginator`: EPUB flow, paginator stabilization, preloading, and document-flow behavior. Depends on 1.
 3. `08-08-pdf-fixed-layout-scroll`: PDF and fixed-layout scroll/zoom/pan. Depends on 1; shares renderer contracts with 2.
 4. `08-08-scroll-input-autoscroll`: wheel, touch, trackpad, middle-click, Auto Scroll, speed gestures. Depends on 2 and 3.
 5. `08-08-scroll-reader-integrations`: progress, TTS, annotations, chrome, textures, and mode transitions. Depends on 2, 3, and 4.
-6. `08-08-scroll-parity-validation`: cross-platform matrix, regression suite, rollout and rollback. Depends on 1–5.
+6. `08-08-scroll-parity-validation`: cross-platform matrix, regression suite, rollout and rollback. Depends on 1–5. **Includes test-infra build**: browser-mode vitest config, `sample-alice.epub` fixtures, and the `__tests__/document/` suite (missing today — see research §3).
 
 ## Key decisions
 
 - Use staged, source-backed migration rather than directory replacement or blind cherry-picking.
-- Upgrade `foliate-js` first, then adapt OpenReadest at the reader boundary.
+- Upgrade `foliate-js` first (pin bump `29fd7aa` → `f65836f7`, clean ancestor — see research §2), then adapt OpenReadest at the reader boundary.
+- `webtoonMode` is out of wave 1 (follow-up task); scroll parity must not depend on it.
+- `ScrollSource` is dead code upstream; do not port it.
 - Treat `f5e729a1` as the final upstream mouse-wheel behavior; do not reintroduce the later-reverted `e18bfd68` smooth-wheel implementation by itself.
 - Keep the parent and child tasks in Trellis `planning` until the final planning summary is explicitly approved.
