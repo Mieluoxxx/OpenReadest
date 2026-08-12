@@ -4,6 +4,25 @@ import { eventDispatcher } from '@/utils/event';
 let lastClickTime = 0;
 let longHoldTimeout: ReturnType<typeof setTimeout> | null = null;
 
+// Middle-click autoscroll (#4951). Books where the feature is armed (desktop
+// app, scrolled mode, setting on) get the middle button's defaults suppressed,
+// so the WebView's own autoscroll (WebView2) can't scroll alongside ours and a
+// middle-clicked link doesn't open. These handlers run in the main realm, so
+// the hook toggles this state directly.
+const autoscrollArmedBooks = new Set<string>();
+// Whether an autoscroll session is running; gates mousemove forwarding so the
+// stream costs nothing while idle.
+let autoscrollTracking = false;
+
+export const setAutoscrollArmed = (bookKey: string, armed: boolean) => {
+  if (armed) autoscrollArmedBooks.add(bookKey);
+  else autoscrollArmedBooks.delete(bookKey);
+};
+
+export const setAutoscrollTracking = (tracking: boolean) => {
+  autoscrollTracking = tracking;
+};
+
 let keyboardState = {
   key: '',
   code: '',
@@ -86,10 +105,31 @@ export const handleKeyup = (bookKey: string, event: KeyboardEvent) => {
   );
 };
 
+// The event's position in main-window viewport coordinates: iframe client
+// coordinates offset by the frame's on-screen rect. The rect already includes
+// any zoom transform on the frame's ancestors, so client sizes are rescaled.
+const getWindowPoint = (event: MouseEvent) => {
+  const win = event.view;
+  const frame = win?.frameElement;
+  if (!win || !frame) return { windowX: event.clientX, windowY: event.clientY };
+  const rect = frame.getBoundingClientRect();
+  const { clientWidth, clientHeight } = win.document.documentElement;
+  const scaleX = clientWidth ? rect.width / clientWidth : 1;
+  const scaleY = clientHeight ? rect.height / clientHeight : 1;
+  return {
+    windowX: rect.left + event.clientX * scaleX,
+    windowY: rect.top + event.clientY * scaleY,
+  };
+};
+
 export const handleMousedown = (bookKey: string, event: MouseEvent) => {
   longHoldTimeout = setTimeout(() => {
     longHoldTimeout = null;
   }, LONG_HOLD_THRESHOLD);
+
+  if (event.button === 1 && autoscrollArmedBooks.has(bookKey)) {
+    event.preventDefault();
+  }
 
   window.postMessage(
     {
@@ -102,10 +142,20 @@ export const handleMousedown = (bookKey: string, event: MouseEvent) => {
       clientY: event.clientY,
       offsetX: event.offsetX,
       offsetY: event.offsetY,
+      // Anchor point for the autoscroll indicator, which renders in the parent.
+      ...(event.button === 1 ? getWindowPoint(event) : null),
       ...getKeyStatus(event),
     },
     '*',
   );
+};
+
+export const handleAuxclick = (bookKey: string, event: MouseEvent) => {
+  // Swallow the middle button's auxclick while autoscroll is armed so a
+  // middle-clicked link doesn't also navigate or open elsewhere.
+  if (event.button === 1 && autoscrollArmedBooks.has(bookKey)) {
+    event.preventDefault();
+  }
 };
 
 export const handleMouseup = (bookKey: string, event: MouseEvent) => {
@@ -125,6 +175,19 @@ export const handleMouseup = (bookKey: string, event: MouseEvent) => {
       offsetX: event.offsetX,
       offsetY: event.offsetY,
       ...getKeyStatus(event),
+    },
+    '*',
+  );
+};
+
+export const handleMousemove = (bookKey: string, event: MouseEvent) => {
+  if (!autoscrollTracking) return;
+  window.postMessage(
+    {
+      type: 'iframe-mousemove',
+      bookKey,
+      screenX: event.screenX,
+      screenY: event.screenY,
     },
     '*',
   );

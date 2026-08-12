@@ -4,6 +4,7 @@ const DEFAULT_SHORTCUTS = {
   onToggleNotebook: ['n'],
   onShowSearchBar: ['ctrl+f', 'cmd+f'],
   onToggleScrollMode: ['shift+j'],
+  onToggleAutoScroll: ['shift+a'],
   onToggleSelectMode: ['shift+s'],
   onToggleBookmark: ['ctrl+d', 'cmd+d'],
   onToggleTTS: ['t'],

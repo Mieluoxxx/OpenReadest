@@ -12,6 +12,9 @@ import { useCustomFontStore } from '@/store/customFontStore';
 import { useParallelViewStore } from '@/store/parallelViewStore';
 import { useMouseEvent, useTouchEvent } from '../hooks/useIframeEvents';
 import { usePagination } from '../hooks/usePagination';
+import { useAutoScroll } from '../hooks/useAutoScroll';
+import { useAutoScrollSpeedGesture } from '../hooks/useAutoScrollSpeedGesture';
+import { useMiddleClickAutoscroll } from '../hooks/useMiddleClickAutoscroll';
 import { useFoliateEvents } from '../hooks/useFoliateEvents';
 import { useProgressSync } from '../hooks/useProgressSync';
 import { useProgressAutoSave } from '../hooks/useProgressAutoSave';
@@ -40,6 +43,8 @@ import {
   handleKeyup,
   handleMousedown,
   handleMouseup,
+  handleMousemove,
+  handleAuxclick,
   handleClick,
   handleWheel,
   handleTouchStart,
@@ -62,6 +67,9 @@ import { isCJKLang } from '@/utils/lang';
 import { getLocale } from '@/utils/misc';
 import Spinner from '@/components/Spinner';
 import KOSyncConflictResolver from './KOSyncResolver';
+import AutoscrollIndicator from './AutoscrollIndicator';
+import AutoScrollControl from './AutoScrollControl';
+import AutoScrollSpeedOverlay from './AutoScrollSpeedOverlay';
 
 declare global {
   interface Window {
@@ -244,12 +252,15 @@ const FoliateViewer: React.FC<{
         detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookKey));
         detail.doc.addEventListener('keyup', handleKeyup.bind(null, bookKey));
         detail.doc.addEventListener('mousedown', handleMousedown.bind(null, bookKey));
+        detail.doc.addEventListener('mousemove', handleMousemove.bind(null, bookKey));
         detail.doc.addEventListener('mouseup', handleMouseup.bind(null, bookKey));
+        detail.doc.addEventListener('auxclick', handleAuxclick.bind(null, bookKey));
         detail.doc.addEventListener('click', handleClick.bind(null, bookKey, doubleClickDisabled));
         detail.doc.addEventListener('wheel', handleWheel.bind(null, bookKey));
         detail.doc.addEventListener('touchstart', handleTouchStart.bind(null, bookKey));
         detail.doc.addEventListener('touchmove', handleTouchMove.bind(null, bookKey));
         detail.doc.addEventListener('touchend', handleTouchEnd.bind(null, bookKey));
+        registerSpeedListeners(detail.doc);
       }
     }
   };
@@ -290,6 +301,11 @@ const FoliateViewer: React.FC<{
   const { handlePageFlip } = usePagination(bookKey, viewRef, containerRef);
   const mouseHandlers = useMouseEvent(bookKey, handlePageFlip);
   const touchHandlers = useTouchEvent(bookKey, handlePageFlip);
+
+  const autoScroll = useAutoScroll(bookKey, viewRef);
+  const { registerSpeedListeners, overlayVisible: speedOverlayVisible } =
+    useAutoScrollSpeedGesture(autoScroll);
+  const autoscrollAnchor = useMiddleClickAutoscroll(bookKey, viewRef, containerRef);
 
   useFoliateEvents(viewRef.current, {
     onLoad: docLoadHandler,
@@ -548,6 +564,21 @@ const FoliateViewer: React.FC<{
         {...mouseHandlers}
         {...touchHandlers}
       />
+      {autoscrollAnchor && <AutoscrollIndicator anchor={autoscrollAnchor} />}
+      {autoScroll.active && (
+        <AutoScrollControl
+          bookKey={bookKey}
+          paused={autoScroll.paused}
+          speed={autoScroll.speed}
+          onTogglePause={autoScroll.togglePause}
+          onAdjustSpeed={autoScroll.adjustSpeed}
+          onStop={autoScroll.stop}
+          gridInsets={gridInsets}
+        />
+      )}
+      {autoScroll.active && (
+        <AutoScrollSpeedOverlay visible={speedOverlayVisible} speed={autoScroll.speed} />
+      )}
       {!docLoaded.current && loading && <Spinner loading={true} />}
       {syncState === 'conflict' && conflictDetails && (
         <KOSyncConflictResolver

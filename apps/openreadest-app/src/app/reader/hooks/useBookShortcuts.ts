@@ -40,6 +40,14 @@ const useBookShortcuts = ({ sideBarBookKey, bookKeys }: UseBookShortcutsProps) =
     }
   };
 
+  const toggleAutoScroll = () => {
+    if (!sideBarBookKey) return;
+    // Auto Scroll only exists in scrolled mode (#4998); the View menu item is
+    // disabled outside it, so the shortcut silently no-ops there too.
+    if (!getViewSettings(sideBarBookKey)?.scrolled) return;
+    eventDispatcher.dispatch('autoscroll-toggle', { bookKey: sideBarBookKey });
+  };
+
   const switchSideBar = () => {
     if (sideBarBookKey) setSideBarBookKey(getNextBookKey(sideBarBookKey));
   };
@@ -229,6 +237,7 @@ const useBookShortcuts = ({ sideBarBookKey, bookKeys }: UseBookShortcutsProps) =
       onToggleSideBar: toggleSideBar,
       onToggleNotebook: toggleNotebook,
       onToggleScrollMode: toggleScrollMode,
+      onToggleAutoScroll: toggleAutoScroll,
       onToggleBookmark: toggleBookmark,
       onOpenFontLayoutSettings: () => setSettingsDialogOpen(true),
       onShowSearchBar: showSearchBar,

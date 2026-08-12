@@ -787,6 +787,12 @@ export const TRANSLATOR_LANGS: Record<string, string> = {
   fa: 'فارسی',
 };
 
+// Auto Scroll (#4998) velocity model: speed is a percentage, 100% = base px/s.
+export const AUTO_SCROLL_BASE_PX_PER_SEC = 20;
+export const MAX_AUTO_SCROLL_SPEED = 500;
+export const MIN_AUTO_SCROLL_SPEED = 25;
+export const AUTO_SCROLL_SPEED_STEP = 25;
+
 export const SUPPORTED_LANGS: Record<string, string> = { ...TRANSLATED_LANGS, zh: '中文' };
 
 export const SUPPORTED_LANGNAMES: Record<string, string> = Object.fromEntries(

@@ -60,6 +60,10 @@ export interface FoliateView extends HTMLElement {
     pages: number;
     containerPosition: number;
     sideProp: 'width' | 'height';
+    /** Scroll axis of the scrolled container ('scrollLeft' for vertical-writing books). */
+    scrollProp?: 'scrollTop' | 'scrollLeft';
+    /** True when scrolled to the very end of the rendered content. */
+    atEnd?: boolean;
     setAttribute: (name: string, value: string | number) => void;
     removeAttribute: (name: string) => void;
     next: () => Promise<void>;

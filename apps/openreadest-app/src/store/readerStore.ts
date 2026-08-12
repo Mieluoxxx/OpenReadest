@@ -35,6 +35,9 @@ interface ViewState {
   progress: BookProgress | null;
   ribbonVisible: boolean;
   ttsEnabled: boolean;
+  /* True while an Auto Scroll session (#4998) is engaged for this view;
+    session-only, never persisted. Drives the View menu checkmark. */
+  autoScrollEnabled: boolean;
   syncing: boolean;
   gridInsets: Insets | null;
   /* View settings for the view: 
@@ -52,6 +55,7 @@ interface ReaderStore {
   setHoveredBookKey: (key: string | null) => void;
   setBookmarkRibbonVisibility: (key: string, visible: boolean) => void;
   setTTSEnabled: (key: string, enabled: boolean) => void;
+  setAutoScrollEnabled: (key: string, enabled: boolean) => void;
   setIsSyncing: (key: string, syncing: boolean) => void;
   setProgress: (
     key: string,
@@ -138,6 +142,7 @@ export const useReaderStore = create<ReaderStore>((set, get) => ({
           progress: null,
           ribbonVisible: false,
           ttsEnabled: false,
+          autoScrollEnabled: false,
           syncing: false,
           gridInsets: null,
           viewSettings: null,
@@ -209,6 +214,7 @@ export const useReaderStore = create<ReaderStore>((set, get) => ({
             progress: null,
             ribbonVisible: false,
             ttsEnabled: false,
+            autoScrollEnabled: false,
             syncing: false,
             gridInsets: null,
             viewSettings: normalizeViewSettings(
@@ -235,6 +241,7 @@ export const useReaderStore = create<ReaderStore>((set, get) => ({
             progress: null,
             ribbonVisible: false,
             ttsEnabled: false,
+            autoScrollEnabled: false,
             syncing: false,
             gridInsets: null,
             viewSettings: null,
@@ -364,6 +371,17 @@ export const useReaderStore = create<ReaderStore>((set, get) => ({
         [key]: {
           ...state.viewStates[key]!,
           ttsEnabled: enabled,
+        },
+      },
+    })),
+
+  setAutoScrollEnabled: (key: string, enabled: boolean) =>
+    set((state) => ({
+      viewStates: {
+        ...state.viewStates,
+        [key]: {
+          ...state.viewStates[key]!,
+          autoScrollEnabled: enabled,
         },
       },
     })),
