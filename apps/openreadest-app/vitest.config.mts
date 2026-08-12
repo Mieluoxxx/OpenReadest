@@ -7,6 +7,13 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      // Browser-mode tests — run via `pnpm test:browser` (vitest.browser.config.mts).
+      '**/*.browser.test.ts',
+      '**/*.browser.test.tsx',
+    ],
     coverage: {
       provider: 'v8',
       include: ['src/store/cloudSyncStore.ts', 'src/services/cloud/profileName.ts'],

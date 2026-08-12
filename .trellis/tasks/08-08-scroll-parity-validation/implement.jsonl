@@ -1,3 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
 {"file": ".trellis/tasks/08-08-scroll-mode-parity/research/upstream-scroll-commit-inventory.md", "reason": "Upstream commit dependencies and final behavior"}
 {"file": ".trellis/tasks/08-08-scroll-mode-parity/research/current-openreadest-scroll-architecture.md", "reason": "Current fork architecture and compatibility boundaries"}
+{"file": ".trellis/tasks/08-08-scroll-mode-parity/research/upstream-scroll-code-audit.md", "reason": "Test infrastructure gap list (vitest.browser, fixtures, __tests__/document) and porting units"}

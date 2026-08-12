@@ -3,7 +3,7 @@
   "name": "scroll-parity-validation",
   "title": "Complete scroll parity regression and rollout",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "08-08-scroll-mode-parity",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Validation infra + full verification + release notes. Infra: vitest.browser.config.mts (playwright/chromium), test:browser script, fixtures (sample-alice/vertical-rl/repro-bg-restore). Ported 6 upstream browser suites (paginator-scrolled 8, stabilization 15, scrolled-restore 3, vertical-rl 9, fxl-horizontal-scroll 11, fxl-scroll-wheel 1) + 2 fork-specific (mode-switch-state 3, tts-anchor-viewport 3) = 53 browser tests. Node suite 367 pass/5 skip (IAP). lint: 0 new (155 baseline). build + build-web pass. Notes: notes/manual-matrix.md, notes/release-notes.md (known limits incl. webtoonMode deferred, position-restore drift <1 screen; rollback gitlinks f65836f7->29fd7aad).",
   "meta": {}
 }
