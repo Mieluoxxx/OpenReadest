@@ -9,8 +9,6 @@ import { eventDispatcher } from '@/utils/event';
 import { isTauriAppPlatform } from '@/services/environment';
 import { tauriGetWindowLogicalPosition } from '@/utils/window';
 
-export type ScrollSource = 'touch' | 'mouse';
-
 type PaginationSide = 'left' | 'right' | 'up' | 'down';
 type PaginationMode = 'pan' | 'page' | 'section';
 
@@ -44,6 +42,75 @@ const hasVerticalPanning = (
   return isPanningView(view, viewSettings) && view.isOverflowY();
 };
 
+// In scrolled mode, snap the page-scroll distance to whole lines so the new view
+// tiles cleanly: forward, the new view's top aligns to the first line that wasn't
+// fully visible (so no already-shown line repeats and lines aren't cut at the top);
+// backward, the new view's bottom aligns to the last such line. `distance` is a
+// positive scroll amount. Falls back to `distance` if the geometry is unavailable.
+// Ported from upstream readest usePagination.ts (snapScrolledDistanceToLines).
+const snapScrolledDistanceToLines = (
+  view: FoliateView,
+  distance: number,
+  forward: boolean,
+): number => {
+  try {
+    const visible = view.renderer.getContents().find((c) => {
+      const f = c.doc?.defaultView?.frameElement?.getBoundingClientRect();
+      return !!f && f.bottom > 1 && f.top < window.innerHeight;
+    });
+    const frameEl = visible?.doc?.defaultView?.frameElement as HTMLElement | undefined;
+    if (!visible || !frameEl) return distance;
+    let container: Element | null = frameEl;
+    while (container && container.id !== 'container') container = container.parentElement;
+    if (!(container instanceof HTMLElement)) return distance;
+
+    const cRect = container.getBoundingClientRect();
+    const frameRect = frameEl.getBoundingClientRect();
+    const size = cRect.height;
+    const scrollTop = container.scrollTop;
+
+    const range = visible.doc.createRange();
+    range.selectNodeContents(visible.doc.body);
+    const rects = Array.from(range.getClientRects()).filter((r) => r.width > 2 && r.height > 2);
+    if (rects.length < 2) return distance;
+    const heights = rects.map((r) => r.height).sort((a, b) => a - b);
+    const maxLineHeight = (heights[Math.floor(heights.length / 2)] ?? 0) * 1.8;
+
+    // Line boxes in content (scroll) coordinates, sorted top-to-bottom (skip
+    // block/container boxes that are much taller than a line).
+    const toContent = (localY: number) => localY + frameRect.top - cRect.top + scrollTop;
+    const lines = rects
+      .filter((r) => r.height <= maxLineHeight)
+      .map((r) => ({ top: toContent(r.top), bottom: toContent(r.bottom) }))
+      .sort((a, b) => a.top - b.top);
+
+    let snapped: number;
+    if (forward) {
+      // First line not fully visible at the bottom -> it becomes the new view's top.
+      const bottomEdge = scrollTop + size;
+      const next = lines.find((l) => l.bottom > bottomEdge + 1);
+      if (!next) return distance;
+      snapped = next.top - scrollTop;
+    } else {
+      // Last line not fully visible at the top -> it becomes the new view's bottom.
+      const topEdge = scrollTop;
+      let prev: { top: number; bottom: number } | undefined;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i]!.top < topEdge - 1) {
+          prev = lines[i]!;
+          break;
+        }
+      }
+      if (!prev) return distance;
+      snapped = scrollTop + size - prev.bottom;
+    }
+    // Guard against degenerate snaps; keep within roughly one page.
+    return snapped > size * 0.4 && snapped < size * 1.6 ? snapped : distance;
+  } catch {
+    return distance;
+  }
+};
+
 export const viewPagination = (
   view: FoliateView | null,
   viewSettings: ViewSettings | null | undefined,
@@ -57,11 +124,13 @@ export const viewPagination = (
     side = swapLeftRight(side);
   }
   if (renderer.scrolled) {
+    // `renderer.size` is already the visible content height: in scrolled mode the
+    // scroll container is inset by the header/footer (parent padding), so `size`
+    // shrinks when they're shown. Subtracting their heights again here would
+    // double-count and make consecutive views overlap. (Upstream readest parity.)
     const { size } = renderer;
-    const showHeader = viewSettings.showHeader && viewSettings.showBarsOnScroll;
-    const showFooter = viewSettings.showFooter && viewSettings.showBarsOnScroll;
     const scrollingOverlap = viewSettings.scrollingOverlap;
-    const distance = size - scrollingOverlap - (showHeader ? 44 : 0) - (showFooter ? 44 : 0);
+    const distance = size - scrollingOverlap;
     switch (mode) {
       case 'section':
         if (side === 'left' || side === 'up') {
@@ -71,8 +140,17 @@ export const viewPagination = (
         }
       case 'pan':
       case 'page':
-      default:
-        return side === 'left' || side === 'up' ? view.prev(distance) : view.next(distance);
+      default: {
+        const forward = !(side === 'left' || side === 'up');
+        // Snap so the view's bottom edge lands between lines (not for vertical flow).
+        const snapped =
+          viewSettings.vertical ||
+          (viewSettings.scrolledDirection === 'horizontal' &&
+            view.book.rendition?.layout === 'pre-paginated')
+            ? distance
+            : snapScrolledDistanceToLines(view, distance, forward);
+        return forward ? view.next(snapped) : view.prev(snapped);
+      }
     }
   } else if (mode === 'pan' && isPanningView(view, viewSettings)) {
     if (hasHorizontalPanning(view, viewSettings) && (side === 'left' || side === 'right')) {
@@ -182,11 +260,15 @@ export const usePagination = (
           !isPanningView(viewRef.current, viewSettings)
         ) {
           // The wheel event is handled by the iframe itself in scrolled mode.
-          const { deltaY } = msg.data;
+          const { deltaY, deltaX } = msg.data;
           if (deltaY > 0) {
-            viewRef.current?.next(1);
+            viewPagination(viewRef.current, viewSettings, 'down');
           } else if (deltaY < 0) {
-            viewRef.current?.prev(1);
+            viewPagination(viewRef.current, viewSettings, 'up');
+          } else if (deltaX < 0) {
+            viewPagination(viewRef.current, viewSettings, 'left');
+          } else if (deltaX > 0) {
+            viewPagination(viewRef.current, viewSettings, 'right');
           }
         } else if (msg.data.type === 'iframe-mouseup') {
           if (msg.data.button === 3) {
@@ -237,45 +319,6 @@ export const usePagination = (
     }
   };
 
-  const handleContinuousScroll = (mode: ScrollSource, scrollDelta: number, threshold: number) => {
-    const renderer = viewRef.current?.renderer;
-    const viewSettings = getViewSettings(bookKey)!;
-    const bookData = getBookData(bookKey)!;
-    // Currently continuous scroll is not supported in pre-paginated layout
-    if (bookData.bookDoc?.rendition?.layout === 'pre-paginated') return;
-
-    if (renderer && viewSettings.scrolled && viewSettings.continuousScroll) {
-      const doScroll = () => {
-        // may have overscroll where the start is greater than 0
-        if (renderer.start <= scrollDelta && scrollDelta > threshold) {
-          setTimeout(() => {
-            viewRef.current?.prev(renderer.start + 1);
-          }, 100);
-          // sometimes viewSize has subpixel value that the end never reaches
-        } else if (
-          Math.ceil(renderer.end) - scrollDelta >= renderer.viewSize &&
-          scrollDelta < -threshold
-        ) {
-          setTimeout(() => {
-            viewRef.current?.next(renderer.viewSize - Math.floor(renderer.end) + 1);
-          }, 100);
-        }
-      };
-      if (mode === 'mouse') {
-        // we can always get mouse wheel events
-        doScroll();
-      } else if (mode === 'touch') {
-        // when the document height is less than the viewport height, we can't get the relocate event
-        if (renderer.size >= renderer.viewSize) {
-          doScroll();
-        } else {
-          // scroll after the relocate event
-          renderer.addEventListener('relocate', () => doScroll(), { once: true });
-        }
-      }
-    }
-  };
-
   useEffect(() => {
     if (!appService?.isMobileApp) return;
 
@@ -296,6 +339,5 @@ export const usePagination = (
 
   return {
     handlePageFlip,
-    handleContinuousScroll,
   };
 };
