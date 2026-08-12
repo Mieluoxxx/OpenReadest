@@ -24,13 +24,14 @@ import {
   applyFixedlayoutStyles,
   applyImageStyle,
   applyScrollModeClass,
-  applyTableStyle,
+  applyScrollbarStyle,
   applyThemeModeClass,
   applyTranslationStyle,
   getStyles,
   keepTextAlignment,
   transformStylesheet,
 } from '@/utils/style';
+import { applyScrollableStyle, applyTableTouchScroll } from '@/utils/scrollable';
 import { mountAdditionalFonts, mountCustomFont } from '@/styles/fonts';
 import { getBookDirFromLanguage, getBookDirFromWritingMode } from '@/utils/book';
 import { useUICSS } from '@/hooks/useUICSS';
@@ -94,6 +95,7 @@ const FoliateViewer: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const isViewCreated = useRef(false);
   const doubleClickDisabled = useRef(!!viewSettings?.disableDoubleClick);
+  const [scrollMargins, setScrollMargins] = useState({ top: 0, bottom: 0 });
   const [toastMessage, setToastMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const docLoaded = useRef(false);
@@ -209,9 +211,11 @@ const FoliateViewer: React.FC<{
       }
 
       applyImageStyle(detail.doc);
-      applyTableStyle(detail.doc);
+      applyScrollableStyle(detail.doc);
+      applyTableTouchScroll(detail.doc);
       applyThemeModeClass(detail.doc, isDarkMode);
       applyScrollModeClass(detail.doc, viewSettings.scrolled || false);
+      applyScrollbarStyle(document, viewSettings.hideScrollbar || false);
       keepTextAlignment(detail.doc);
       removeTabIndex(detail.doc);
 
@@ -283,9 +287,9 @@ const FoliateViewer: React.FC<{
     }
   };
 
-  const { handlePageFlip, handleContinuousScroll } = usePagination(bookKey, viewRef, containerRef);
-  const mouseHandlers = useMouseEvent(bookKey, handlePageFlip, handleContinuousScroll);
-  const touchHandlers = useTouchEvent(bookKey, handlePageFlip, handleContinuousScroll);
+  const { handlePageFlip } = usePagination(bookKey, viewRef, containerRef);
+  const mouseHandlers = useMouseEvent(bookKey, handlePageFlip);
+  const touchHandlers = useTouchEvent(bookKey, handlePageFlip);
 
   useFoliateEvents(viewRef.current, {
     onLoad: docLoadHandler,
@@ -413,15 +417,40 @@ const FoliateViewer: React.FC<{
     const rightMargin = insets.right + moreRightInset;
     const bottomMargin = (showBottomFooter ? insets.bottom : viewInsets.bottom) + moreBottomInset;
     const leftMargin = insets.left + moreLeftInset;
-    const viewMargins = viewSettings.showMarginsOnScroll && viewSettings.scrolled;
-
-    viewRef.current?.renderer.setAttribute('margin-top', `${viewMargins ? 0 : topMargin}px`);
+    viewRef.current?.renderer.setAttribute('margin-top', `${topMargin}px`);
     viewRef.current?.renderer.setAttribute('margin-right', `${rightMargin}px`);
-    viewRef.current?.renderer.setAttribute('margin-bottom', `${viewMargins ? 0 : bottomMargin}px`);
+    viewRef.current?.renderer.setAttribute('margin-bottom', `${bottomMargin}px`);
     viewRef.current?.renderer.setAttribute('margin-left', `${leftMargin}px`);
+
+    // Scrolled mode: the scroll viewport is inset by the header/footer bands via
+    // container padding, so scrolling content never runs under the chrome. The
+    // renderer margins keep the page margins (upstream readest setScrollMargins
+    // contract; replaces the legacy showMarginsOnScroll zeroing).
+    if (viewSettings.scrolled) {
+      // showBarsOnScroll=false hides the bars in scrolled mode; the scroll
+      // viewport then needs no inset (OpenReadest fork setting).
+      const headerVisible = showTopHeader && viewSettings.showBarsOnScroll;
+      const footerVisible = showBottomFooter && viewSettings.showBarsOnScroll;
+      const safeBottomPadding = appService?.hasSafeAreaInset ? gridInsets.bottom * 0.33 : 0;
+      const footerBarHeight = safeBottomPadding + 52; // FooterBar h-[52px]
+      const scrollTop = headerVisible ? topMargin : 0;
+      const scrollBottom = footerVisible ? Math.max(footerBarHeight, ttsBarHeight) : ttsBarHeight;
+      setScrollMargins({ top: bookData?.isFixedLayout ? 0 : scrollTop, bottom: scrollBottom });
+    } else {
+      setScrollMargins({ top: 0, bottom: 0 });
+    }
     viewRef.current?.renderer.setAttribute('gap', `${viewSettings.gapPercent}%`);
+    viewRef.current?.renderer.setAttribute(
+      'scroll-direction',
+      viewSettings.scrolledDirection === 'horizontal' ? 'horizontal' : 'vertical',
+    );
     if (viewSettings.scrolled) {
       viewRef.current?.renderer.setAttribute('flow', 'scrolled');
+      if (viewSettings.noContinuousScroll) {
+        viewRef.current?.renderer.setAttribute('no-continuous-scroll', '');
+      } else {
+        viewRef.current?.renderer.removeAttribute('no-continuous-scroll');
+      }
     }
   };
 
@@ -436,6 +465,7 @@ const FoliateViewer: React.FC<{
         }
         applyThemeModeClass(doc, isDarkMode);
         applyScrollModeClass(doc, viewSettings.scrolled || false);
+        applyScrollbarStyle(document, viewSettings.hideScrollbar || false);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -492,11 +522,12 @@ const FoliateViewer: React.FC<{
     viewSettings?.doubleBorder,
     viewSettings?.showHeader,
     viewSettings?.showFooter,
+    viewSettings?.showBarsOnScroll,
     viewSettings?.showTTSBar,
     viewState?.ttsEnabled,
+    viewSettings?.scrolled,
+    viewSettings?.noContinuousScroll,
   ]);
-
-  const showViewMargins = viewSettings?.showMarginsOnScroll && viewSettings?.scrolled;
 
   return (
     <>
@@ -507,8 +538,8 @@ const FoliateViewer: React.FC<{
         aria-label={_('Book Content')}
         className='foliate-viewer h-[100%] w-[100%] focus:outline-none'
         style={{
-          paddingTop: showViewMargins ? insets.top : 0,
-          paddingBottom: showViewMargins ? insets.bottom : 0,
+          paddingTop: scrollMargins.top,
+          paddingBottom: scrollMargins.bottom,
         }}
         {...mouseHandlers}
         {...touchHandlers}
