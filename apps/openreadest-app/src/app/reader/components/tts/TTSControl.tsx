@@ -23,6 +23,7 @@ import { fetchImageAsBase64 } from '@/utils/image';
 import { invokeUseBackgroundAudio } from '@/utils/bridge';
 import { isCfiInLocation } from '@/utils/cfi';
 import { getLocale } from '@/utils/misc';
+import { isRangeOutOfScrolledView } from '@/app/reader/utils/ttsAnchor';
 import Popup from '@/components/Popup';
 import TTSPanel from './TTSPanel';
 import TTSIcon from './TTSIcon';
@@ -233,26 +234,37 @@ const TTSControl: React.FC<TTSControlProps> = ({ bookKey, gridInsets }) => {
       }
 
       if (!view.renderer.scrolled) {
-        view.renderer.scrollToAnchor(range);
+        view.renderer.scrollToAnchor?.(range);
       } else {
         const rect = range.getBoundingClientRect();
-        const { start, size, viewSize, sideProp } = view.renderer;
-        const positionStart = rect[sideProp === 'height' ? 'y' : 'x'] + viewSettings.marginTopPx;
-        const positionEnd = rect[sideProp === 'height' ? 'height' : 'width'] + positionStart;
-        const offsetStart = view.book.dir === 'rtl' ? viewSize - positionStart : positionStart;
-        const offsetEnd = view.book.dir === 'rtl' ? viewSize - positionEnd : positionEnd;
+        const { start, end, sideProp } = view.renderer;
+        const rangeTop = rect[sideProp === 'height' ? 'y' : 'x'];
+        const rangeSize = rect[sideProp === 'height' ? 'height' : 'width'];
 
         const showHeader = viewSettings.showHeader;
         const showFooter = viewSettings.showFooter;
+        // The header/footer bands overlay the scroll viewport only while they
+        // are shown on scroll (fork showBarsOnScroll setting); the overlap
+        // thresholds follow the page margins like the bands themselves.
+        // (Upstream readest useTTSControl.ts, minus the removed
+        // showBarsOnScroll gate.)
         const showBarsOnScroll = viewSettings.showBarsOnScroll;
-        const headerScrollOverlap = showHeader && showBarsOnScroll ? 44 : 0;
-        const footerScrollOverlap = showFooter && showBarsOnScroll ? 44 : 0;
+        const headerScrollOverlap = showHeader && showBarsOnScroll ? viewSettings.marginTopPx : 0;
+        const footerScrollOverlap =
+          showFooter && showBarsOnScroll ? viewSettings.marginBottomPx : 0;
         const scrollingOverlap = viewSettings.scrollingOverlap;
-        const endInNextView = offsetEnd > start + size - footerScrollOverlap - scrollingOverlap;
-        const startInPrevView = offsetStart < start + headerScrollOverlap + scrollingOverlap;
-        if (endInNextView || startInPrevView) {
-          const scrollTo = offsetStart - headerScrollOverlap - scrollingOverlap;
-          view.renderer.scrollToAnchor(scrollTo / viewSize);
+        if (
+          isRangeOutOfScrolledView({
+            rangeTop,
+            rangeSize,
+            start,
+            end,
+            headerOverlap: headerScrollOverlap,
+            footerOverlap: footerScrollOverlap,
+            scrollingOverlap,
+          })
+        ) {
+          view.renderer.scrollToAnchor?.(range);
         }
       }
     };
