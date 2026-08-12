@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AiPanel from '@/components/settings/AiPanel';
+import { AiConfigRepository } from '@/services/ai/AiConfigRepository';
 import { testAiConnection } from '@/services/ai/aiClient';
 
 vi.mock('@/context/EnvContext', () => ({
@@ -78,6 +79,36 @@ describe('AiPanel', () => {
     });
   });
 
+  it('falls back to the saved API key when testing with an empty input', async () => {
+    vi.mocked(AiConfigRepository.getConfig).mockResolvedValue({
+      baseUrl: 'http://localhost:11434/v1',
+      model: 'llama3.2',
+      apiKey: 'saved-key-123',
+    });
+    render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
+
+    // 等待「已保存 key」状态生效（占位符变化）
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Saved, enter to replace')).toBeTruthy();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('https://api.deepseek.com/v1'), {
+      target: { value: 'http://localhost:11434/v1' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('deepseek-v4-flash'), {
+      target: { value: 'llama3.2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+
+    await waitFor(() => {
+      expect(testAiConnection).toHaveBeenCalledWith({
+        baseUrl: 'http://localhost:11434/v1',
+        model: 'llama3.2',
+        apiKey: 'saved-key-123',
+      });
+    });
+  });
+
   it('shows a red cross after a failed connection test', async () => {
     vi.mocked(testAiConnection).mockResolvedValue({ ok: false, code: 'NETWORK' });
     render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
@@ -94,6 +125,32 @@ describe('AiPanel', () => {
       const cross = screen.getByLabelText('Connection failed');
       expect(cross.closest('.config-item')).toBeTruthy();
       expect(screen.queryByText(/Network error/)).toBeNull();
+    });
+  });
+
+  it('shows debug error info below the AI Integration card after a failed test', async () => {
+    vi.mocked(testAiConnection).mockResolvedValue({
+      ok: false,
+      code: 'AUTH_FAILED',
+      message: 'HTTP 401: Invalid API key',
+    });
+    render(<AiPanel onRegisterReset={vi.fn()} bookKey='' />);
+
+    fireEvent.change(screen.getByPlaceholderText('https://api.deepseek.com/v1'), {
+      target: { value: 'http://localhost:11434/v1' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('deepseek-v4-flash'), {
+      target: { value: 'llama3.2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+
+    await waitFor(() => {
+      const debugText = screen.getByText(/\[AUTH_FAILED\] HTTP 401: Invalid API key/);
+      expect(debugText.className).toContain('text-error');
+      // debug 信息位于 AI 集成卡片下方，而非卡片内部
+      expect(debugText.closest('.config-item')).toBeNull();
+      const card = debugText.previousElementSibling;
+      expect(card?.classList.contains('card')).toBeTruthy();
     });
   });
 

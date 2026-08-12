@@ -21,8 +21,9 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [savedHasKey, setSavedHasKey] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
-  const [testError, setTestError] = useState<AiErrorCode | null>(null);
+  const [testError, setTestError] = useState<{ code: AiErrorCode; message?: string } | null>(null);
   const [testSucceeded, setTestSucceeded] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
     setBaseUrl('');
     setModel('');
     setApiKey('');
+    setLoadedKey(null);
     setTestError(null);
     setTestSucceeded(false);
     AiConfigRepository.clearApiKey();
@@ -55,6 +57,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
       await AiConfigRepository.saveApiKey(apiKey);
     }
     setApiKey('');
+    setLoadedKey(null);
     setSavedHasKey(true);
   };
 
@@ -63,15 +66,21 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
     setTestError(null);
     setTestSucceeded(false);
     try {
+      // 输入框为空时回退到已保存的 key（保存后输入框会被清空）
+      let key = apiKey || undefined;
+      if (!key && savedHasKey) {
+        const config = await AiConfigRepository.getConfig();
+        key = config.apiKey;
+      }
       const result = await testAiConnection({
         baseUrl: baseUrl.trim(),
         model: model.trim(),
-        apiKey: apiKey || undefined,
+        apiKey: key,
       });
       if (result.ok) {
         setTestSucceeded(true);
       } else if (result.code) {
-        setTestError(result.code);
+        setTestError({ code: result.code, message: result.message });
       }
     } finally {
       setTesting(false);
@@ -82,6 +91,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
     await AiConfigRepository.clearApiKey();
     setSavedHasKey(false);
     setApiKey('');
+    setLoadedKey(null);
     setTestError(null);
     setTestSucceeded(false);
   };
@@ -90,6 +100,21 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
     setter(value);
     setTestError(null);
     setTestSucceeded(false);
+  };
+
+  const handleToggleShowKey = async () => {
+    if (!showKey && !apiKey && savedHasKey) {
+      const config = await AiConfigRepository.getConfig();
+      if (config.apiKey) {
+        setApiKey(config.apiKey);
+        setLoadedKey(config.apiKey);
+      }
+    }
+    if (showKey && loadedKey !== null && apiKey === loadedKey) {
+      setApiKey('');
+      setLoadedKey(null);
+    }
+    setShowKey((v) => !v);
   };
 
   return (
@@ -129,7 +154,7 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
                   className='text-base-content/60 hover:text-base-content absolute inset-y-0 end-0 flex w-8 items-center justify-center'
                   aria-label={showKey ? _('Hide API key') : _('Show API key')}
                   title={showKey ? _('Hide API key') : _('Show API key')}
-                  onClick={() => setShowKey((v) => !v)}
+                  onClick={handleToggleShowKey}
                 >
                   {showKey ? <LuEyeOff aria-hidden='true' /> : <LuEye aria-hidden='true' />}
                 </button>
@@ -178,6 +203,11 @@ const AiPanel: React.FC<SettingsPanelPanelProp> = ({ onRegisterReset }) => {
             </div>
           </div>
         </div>
+        {testError && (
+          <p className='text-error mt-2 break-all font-mono text-xs' role='alert'>
+            [{testError.code}]{testError.message ? ` ${testError.message}` : ''}
+          </p>
+        )}
       </div>
     </div>
   );
