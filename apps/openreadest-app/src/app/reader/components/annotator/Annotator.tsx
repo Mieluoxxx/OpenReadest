@@ -833,7 +833,10 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   };
 
   const selectionAnnotated = selection?.annotated;
-  const proofreadDisabled = !supportsProofread(bookData.book?.format);
+  const proofreadDisabled = useMemo(
+    () => !supportsProofread(bookData.book?.format),
+    [bookData.book?.format],
+  );
   const toolButtons = annotationToolButtons.map(({ type, label, Icon }) => {
     switch (type) {
       case 'copy':

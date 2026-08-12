@@ -82,7 +82,7 @@ const HintInfo: React.FC<SectionInfoProps> = ({
       />
       <div
         className={clsx(
-          'hintinfo absolute flex items-center justify-end overflow-hidden ps-2',
+          'hintinfo pointer-events-none absolute flex items-center justify-end overflow-hidden ps-2',
           hintMessage ? '' : 'bg-transparent',
           isVertical ? 'writing-vertical-rl' : 'top-0',
           isScrolled
