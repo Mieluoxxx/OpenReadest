@@ -49,3 +49,17 @@ Questions to answer:
 <!-- What reviewers should check -->
 
 (To be filled by the team)
+
+## Browser Test Contract (2026-08-12, scroll parity)
+
+Reader renderer behavior is covered by vitest **browser mode** (chromium/playwright).
+Rules that keep the two suites from drifting:
+
+- Browser tests: `*.browser.test.*` under `src/__tests__/document/` — run via
+  `pnpm --filter @openreadest/app test:browser`; config: `apps/openreadest-app/vitest.browser.config.mts`.
+- Node tests: everything else — `pnpm --filter @openreadest/app test --run`.
+- `vitest.config.mts` excludes `*.browser.test.*`; browser config includes only them (mutually exclusive, no double runs).
+- Fixtures: `src/__tests__/fixtures/data/` (sample-alice.epub, sample-vertical-rl.epub, repro-bg-restore.epub).
+- Test harness: `src/__tests__/document/test-utils.ts` (TestRenderer type) — never touch shared production types for test convenience.
+- Fork invariants to re-verify in browser tests: no captured-turn pipeline exists (mode-switch state hygiene), TTS anchor must not re-anchor for mid-viewport sentences, RTL horizontal scrolled relies on paginator-internal normalization.
+- Baseline lint debt (155 errors, react-hooks compiler) predates the migration; new code must stay 0-added.
