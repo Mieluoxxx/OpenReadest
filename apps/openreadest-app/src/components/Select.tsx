@@ -12,6 +12,7 @@ type SelectProps = {
   options: Option[];
   disabled?: boolean;
   className?: string;
+  'aria-label'?: string;
 };
 
 export default function Select({
@@ -20,6 +21,7 @@ export default function Select({
   options,
   className,
   disabled = false,
+  ...rest
 }: SelectProps) {
   return (
     <select
@@ -31,6 +33,7 @@ export default function Select({
         className,
       )}
       disabled={disabled}
+      {...rest}
       style={{
         textAlignLast: 'end',
       }}

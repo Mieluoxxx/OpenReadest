@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "AiSettings 类型扩展（format 枚举）与 AiConfig 契约类型需遵循项目类型组织约定"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "AiPanel 每格式内存草稿状态（useState<Record<AiFormat,...>>）与 settingsStore 持久化模式对齐"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "aiClient 重写与测试重写需符合项目质量与测试约定"}

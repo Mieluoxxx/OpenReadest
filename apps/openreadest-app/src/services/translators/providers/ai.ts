@@ -5,8 +5,8 @@ import { AI_PROMPT_VERSION, AiError, requestAiTranslation } from '@/services/ai/
 import { AiConfigRepository } from '@/services/ai/AiConfigRepository';
 
 const getCacheNamespace = (): string => {
-  const { baseUrl, model } = AiConfigRepository.getNonSecretConfig();
-  return `ai:${md5(`${baseUrl}|${model}|${AI_PROMPT_VERSION}`)}`;
+  const { format, baseUrl, model } = AiConfigRepository.getNonSecretConfig();
+  return `ai:${md5(`${format ?? 'openai-chat'}|${baseUrl}|${model}|${AI_PROMPT_VERSION}`)}`;
 };
 
 export const aiProvider: TranslationProvider = {

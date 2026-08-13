@@ -1,19 +1,19 @@
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import { isTauriAppPlatform } from '@/services/environment';
+import { APICallError, NoSuchModelError, RetryError, generateText } from 'ai';
+import type { AiFormat } from '@/types/settings';
 import type { AiConfig } from './AiConfigRepository';
+import { createAiModel } from './aiProviderFactory';
 
 /** 版本号参与缓存命名空间，提示词变更时递增以使旧缓存失效。 */
 export const AI_PROMPT_VERSION = 1;
 
-/** 默认请求超时（毫秒）。 */
+/** 整个操作（含重试）的总截止超时（毫秒）。 */
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 
 /** 页面级全局并发上限。每个段落会独立调用 provider，因此必须在客户端层限流。 */
 export const AI_MAX_CONCURRENCY = 3;
 
-/** 网络/超时/限流/服务端错误的自动重试次数。 */
+/** SDK 重试次数（传给 generateText maxRetries，429/5xx/网络错误由 SDK 接管）。 */
 export const AI_MAX_RETRIES = 2;
-const AI_RETRY_BASE_DELAY_MS = 500;
 
 export type AiErrorCode =
   | 'NOT_CONFIGURED'
@@ -37,16 +37,7 @@ export class AiError extends Error {
   }
 }
 
-/**
- * 确定性规范化 Base URL：trim 尾部 `/` 后追加 `/chat/completions`；
- * 若已以该 endpoint 结尾则直接使用。空输入返回空串。
- */
-export const normalizeBaseUrl = (raw: string): string => {
-  const trimmed = raw.trim().replace(/\/+$/, '');
-  if (!trimmed) return '';
-  if (trimmed.endsWith('/chat/completions')) return trimmed;
-  return `${trimmed}/chat/completions`;
-};
+export { createAiModel };
 
 const buildSystemPrompt = (sourceLang: string, targetLang: string): string => {
   return [
@@ -69,113 +60,47 @@ const classifyHttpError = (status: number): AiErrorCode => {
   return 'ENDPOINT_OR_MODEL_ERROR';
 };
 
-const extractTextContent = (content: unknown): string | null => {
-  if (typeof content === 'string') return content;
-  if (!Array.isArray(content)) return null;
+/**
+ * SDK 错误 → 8 种 AiErrorCode 归一映射。
+ * - APICallError：>=400 按 HTTP 状态分类；2xx/3xx（响应解析失败等）→ BAD_RESPONSE
+ * - NoSuchModelError → ENDPOINT_OR_MODEL_ERROR
+ * - RetryError → 取 lastError（重试耗尽后的原始错误）递归映射
+ * - AbortError（abortSignal 触发）→ TIMEOUT
+ * - 其余：网络类错误特征 → NETWORK；其余未知（SDK 解析崩溃等）→ BAD_RESPONSE
+ */
+const NETWORK_ERROR_PATTERN =
+  /fetch failed|failed to fetch|networkerror|network error|load failed/i;
 
-  const parts = content
-    .map((part) => {
-      if (typeof part === 'string') return part;
-      if (!part || typeof part !== 'object') return '';
-      const text = (part as { text?: unknown }).text;
-      return typeof text === 'string' ? text : '';
-    })
-    .filter(Boolean);
-  return parts.length > 0 ? parts.join('') : null;
-};
-
-const extractCompletionText = (data: unknown): string | null => {
-  if (!data || typeof data !== 'object') return null;
-  const payload = data as {
-    choices?: Array<{
-      message?: { content?: unknown };
-      delta?: { content?: unknown };
-      text?: unknown;
-    }>;
-    output_text?: unknown;
-  };
-  const choice = payload.choices?.[0];
-  return (
-    extractTextContent(choice?.message?.content) ??
-    extractTextContent(choice?.delta?.content) ??
-    extractTextContent(choice?.text) ??
-    extractTextContent(payload.output_text)
-  );
-};
-
-const parseSseCompletion = (body: string): string | null => {
-  const parts: string[] = [];
-  for (const line of body.split(/\r?\n/)) {
-    if (!line.startsWith('data:')) continue;
-    const data = line.slice(5).trim();
-    if (!data || data === '[DONE]') continue;
-    try {
-      const text = extractCompletionText(JSON.parse(data));
-      if (text) parts.push(text);
-    } catch {
-      // 忽略心跳/非 JSON SSE 行；最终无内容时统一报 BAD_RESPONSE。
+const toAiError = (error: unknown): AiError => {
+  if (error instanceof AiError) return error;
+  if (error instanceof APICallError) {
+    if (typeof error.statusCode === 'number' && error.statusCode >= 400) {
+      return new AiError(
+        classifyHttpError(error.statusCode),
+        `HTTP ${error.statusCode}: ${error.message}`,
+        error.statusCode,
+      );
     }
+    // 2xx/3xx 的 APICallError：响应解析失败等（如 Invalid JSON response）。
+    return new AiError('BAD_RESPONSE', error.message);
   }
-  return parts.length > 0 ? parts.join('') : null;
-};
-
-const readResponseText = async (response: Response): Promise<string> => {
-  try {
-    return typeof response.text === 'function' ? await response.text() : '';
-  } catch {
-    return '';
+  if (error instanceof NoSuchModelError) {
+    return new AiError('ENDPOINT_OR_MODEL_ERROR', error.message);
   }
-};
-
-const getContentType = (response: Response): string => {
-  try {
-    return response.headers?.get('content-type')?.toLowerCase() ?? '';
-  } catch {
-    return '';
+  if (error instanceof RetryError) {
+    if (error.lastError) return toAiError(error.lastError);
+    return new AiError('NETWORK', error.message);
   }
-};
-
-const looksLikeHtml = (body: string): boolean => /^\s*(?:<!doctype\s+html|<html\b)/i.test(body);
-
-const parseSuccessResponse = (body: string, contentType: string): string => {
-  const trimmed = body.trim();
-  if (!trimmed) {
-    throw new AiError('BAD_RESPONSE', 'AI service returned an empty response.');
+  if (error instanceof Error && error.name === 'AbortError') {
+    return new AiError('TIMEOUT', 'AI request timed out.');
   }
-
-  if (contentType.includes('text/event-stream') || /^data:/m.test(trimmed)) {
-    const streamed = parseSseCompletion(trimmed);
-    if (streamed?.trim()) return streamed.trim();
-    throw new AiError('BAD_RESPONSE', 'AI service returned an invalid event stream.');
+  const message =
+    error instanceof Error ? error.message : 'AI request failed due to a network error.';
+  if (NETWORK_ERROR_PATTERN.test(message)) {
+    return new AiError('NETWORK', message);
   }
-
-  try {
-    const content = extractCompletionText(JSON.parse(trimmed));
-    if (content?.trim()) return content.trim();
-    throw new AiError('BAD_RESPONSE', 'Response does not contain translation content.');
-  } catch (error) {
-    if (error instanceof AiError) throw error;
-  }
-
-  // 一些兼容服务直接返回 text/plain；HTML 常代表代理/网关错误页，不能当译文。
-  if (!looksLikeHtml(trimmed) && (!contentType || contentType.includes('text/plain'))) {
-    return trimmed;
-  }
-  throw new AiError(
-    'BAD_RESPONSE',
-    `AI service returned unsupported content${contentType ? ` (${contentType})` : ''}.`,
-  );
-};
-
-const extractProviderErrorMessage = (body: string): string | null => {
-  if (!body.trim() || looksLikeHtml(body)) return null;
-  try {
-    const parsed = JSON.parse(body) as { error?: { message?: unknown }; message?: unknown };
-    const message = parsed.error?.message ?? parsed.message;
-    return typeof message === 'string' ? message.slice(0, 240) : null;
-  } catch {
-    return body.trim().slice(0, 240);
-  }
+  // SDK 内部解析崩溃（如空 choices 时读 undefined）等未知错误：按响应不可用处理。
+  return new AiError('BAD_RESPONSE', message || 'AI service returned an invalid response.');
 };
 
 let activeRequestCount = 0;
@@ -198,120 +123,75 @@ const runWithRequestSlot = <T>(task: () => Promise<T>): Promise<T> => {
   });
 };
 
-const getRequestKey = (
-  config: AiConfig,
-  text: string,
-  sourceLang: string,
-  targetLang: string,
-): string => JSON.stringify([config.baseUrl, config.model, sourceLang, targetLang, text]);
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
-const isRetryableAiError = (error: unknown): error is AiError => {
-  return (
-    error instanceof AiError &&
-    ['NETWORK', 'TIMEOUT', 'RATE_LIMITED', 'SERVER_ERROR'].includes(error.code)
-  );
-};
+export interface AiCompletionMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
 
 /**
- * 请求一次 Chat Completions 翻译。返回译文；失败抛 AiError（归一错误码）。
- * 每次仅发送单条文本，不聚合整书。
+ * 拆分 system 消息：AI SDK v7 不允许 system 出现在 messages 字段，
+ * 需通过 instructions 选项传入（SDK 会转为请求体中的 system 消息）。
  */
-const requestAiTranslationOnce = async (
-  config: AiConfig,
-  text: string,
-  sourceLang: string,
-  targetLang: string,
-): Promise<string> => {
-  const url = normalizeBaseUrl(config.baseUrl);
-  if (!url || !config.model) {
-    throw new AiError('NOT_CONFIGURED', 'AI service is not configured.');
+const splitSystemMessages = (messages: AiCompletionMessage[]) => {
+  const instructions: string[] = [];
+  const rest: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const message of messages) {
+    if (message.role === 'system') {
+      instructions.push(message.content);
+    } else {
+      rest.push({ role: message.role, content: message.content });
+    }
   }
+  return { instructions: instructions.join('\n\n') || undefined, messages: rest };
+};
 
-  const fetchImpl = isTauriAppPlatform() ? tauriFetch : window.fetch;
+const requestAiCompletionOnce = async (
+  config: AiConfig,
+  messages: AiCompletionMessage[],
+  options?: { temperature?: number },
+): Promise<string> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json, text/event-stream, text/plain',
-  };
-  if (config.apiKey) {
-    headers['Authorization'] = `Bearer ${config.apiKey}`;
-  }
-
   try {
-    const response = await fetchImpl(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: buildSystemPrompt(sourceLang, targetLang) },
-          { role: 'user', content: text },
-        ],
-        temperature: 0.3,
-        stream: false,
-      }),
-      signal: controller.signal,
+    const { instructions, messages: sdkMessages } = splitSystemMessages(messages);
+    const result = await generateText({
+      model: createAiModel(config),
+      instructions,
+      messages: sdkMessages,
+      temperature: options?.temperature,
+      abortSignal: controller.signal,
+      maxRetries: AI_MAX_RETRIES,
     });
-
-    const body = await readResponseText(response);
-    if (!response.ok) {
-      const detail = extractProviderErrorMessage(body);
-      throw new AiError(
-        classifyHttpError(response.status),
-        detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`,
-        response.status,
-      );
+    const text = result.text?.trim();
+    if (!text) {
+      throw new AiError('BAD_RESPONSE', 'AI service returned an empty response.');
     }
-    return parseSuccessResponse(body, getContentType(response));
+    return text;
   } catch (err) {
-    if (err instanceof AiError) throw err;
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new AiError('TIMEOUT', 'AI request timed out.');
-    }
-    const message =
-      err instanceof Error ? err.message : 'AI request failed due to a network error.';
-    throw new AiError('NETWORK', message);
+    throw toAiError(err);
   } finally {
     clearTimeout(timeoutId);
   }
 };
 
-const requestAiTranslationWithRetry = async (
+/**
+ * 通用 AI 完成入口（字符串输出）。SDK 负责多协议请求/响应解析与重试；
+ * 本层保留并发限流 ×3、同请求去重与 30s 总截止超时（SDK 不提供的部分）。
+ * 失败抛 AiError（归一错误码）。
+ */
+export const requestAiCompletion = (
   config: AiConfig,
-  text: string,
-  sourceLang: string,
-  targetLang: string,
+  messages: AiCompletionMessage[],
+  options?: { temperature?: number },
 ): Promise<string> => {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await requestAiTranslationOnce(config, text, sourceLang, targetLang);
-    } catch (error) {
-      if (!isRetryableAiError(error) || attempt >= AI_MAX_RETRIES) throw error;
-      await sleep(AI_RETRY_BASE_DELAY_MS * 2 ** attempt);
-    }
+  if (!config.baseUrl?.trim() || !config.model?.trim()) {
+    return Promise.reject(new AiError('NOT_CONFIGURED', 'AI service is not configured.'));
   }
-};
-
-export const requestAiTranslation = (
-  config: AiConfig,
-  text: string,
-  sourceLang: string,
-  targetLang: string,
-): Promise<string> => {
-  const key = getRequestKey(config, text, sourceLang, targetLang);
+  const key = JSON.stringify([config.format, config.baseUrl, config.model, messages]);
   const existing = inFlightRequests.get(key);
   if (existing) return existing;
 
-  const request = runWithRequestSlot(() =>
-    requestAiTranslationWithRetry(config, text, sourceLang, targetLang),
-  );
+  const request = runWithRequestSlot(() => requestAiCompletionOnce(config, messages, options));
   inFlightRequests.set(key, request);
   request.then(
     () => inFlightRequests.delete(key),
@@ -320,14 +200,35 @@ export const requestAiTranslation = (
   return request;
 };
 
+/**
+ * 请求一次 AI 翻译。返回译文；失败抛 AiError（归一错误码）。
+ * 每次仅发送单条文本，不聚合整书。
+ */
+export const requestAiTranslation = (
+  config: AiConfig,
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+): Promise<string> => {
+  return requestAiCompletion(
+    config,
+    [
+      { role: 'system', content: buildSystemPrompt(sourceLang, targetLang) },
+      { role: 'user', content: text },
+    ],
+    { temperature: 0.3 },
+  );
+};
+
 export interface TestAiConnectionResult {
   ok: boolean;
   code?: AiErrorCode;
   message?: string;
 }
 
-/** 用草稿配置发一次最小请求，返回归一结果（复用 requestAiTranslation 的错误分类）。 */
+/** 用草稿配置发一次最小请求，返回归一结果（复用 requestAiCompletion 的错误分类）。 */
 export const testAiConnection = async (draft: {
+  format: AiFormat;
   baseUrl: string;
   model: string;
   apiKey?: string;

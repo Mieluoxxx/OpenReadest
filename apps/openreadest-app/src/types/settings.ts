@@ -29,9 +29,14 @@ export interface ReadSettings {
   customThemes: CustomTheme[];
 }
 
+/** AI 消息格式：与 Vercel AI SDK 模型工厂一一对应。 */
+export type AiFormat = 'openai-chat' | 'openai-responses' | 'anthropic' | 'deepseek';
+
 export interface AiSettings {
   baseUrl: string;
   model: string;
+  /** 缺失 = 旧配置，解析为 'openai-chat'（与既有行为等价）。 */
+  format?: AiFormat;
 }
 
 export interface KOSyncSettings {

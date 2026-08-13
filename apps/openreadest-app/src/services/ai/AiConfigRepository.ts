@@ -1,11 +1,25 @@
 import environmentConfig, { EnvConfigType } from '@/services/environment';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { AiSettings } from '@/types/settings';
+import type { AiFormat, AiSettings } from '@/types/settings';
 
 /** API Key 秘密文件名（存于 Settings 目录，与 settings.json 分离、不随云同步）。 */
 const AI_SECRETS_FILENAME = 'ai-secrets.json';
 
+/** 消息格式归一：仅接受四个合法枚举，其余（含缺失/未知旧值）解析为 'openai-chat'。 */
+const normalizeFormat = (format: unknown): AiFormat => {
+  if (
+    format === 'openai-chat' ||
+    format === 'openai-responses' ||
+    format === 'anthropic' ||
+    format === 'deepseek'
+  ) {
+    return format;
+  }
+  return 'openai-chat';
+};
+
 export interface AiConfig {
+  format: AiFormat;
   baseUrl: string;
   model: string;
   apiKey?: string;
@@ -46,15 +60,23 @@ export const AiConfigRepository = {
 
   /** 聚合读取完整配置（含异步读取的秘密文件中的 API Key）。 */
   async getConfig(): Promise<AiConfig> {
-    const { baseUrl, model } = AiConfigRepository.getNonSecretConfig();
+    const { format, baseUrl, model } = AiConfigRepository.getNonSecretConfig();
     const apiKey = await readApiKey();
-    return { baseUrl, model, apiKey };
+    return { format: normalizeFormat(format), baseUrl, model, apiKey };
   },
 
   /** 保存非敏感配置（写 zustand store + 持久化 settings.json）。 */
-  async saveConfig(envConfig: EnvConfigType, baseUrl: string, model: string): Promise<void> {
+  async saveConfig(
+    envConfig: EnvConfigType,
+    baseUrl: string,
+    model: string,
+    format: AiFormat,
+  ): Promise<void> {
     const { settings, setSettings, saveSettings } = useSettingsStore.getState();
-    const next: typeof settings = { ...settings, globalAiSettings: { baseUrl, model } };
+    const next: typeof settings = {
+      ...settings,
+      globalAiSettings: { baseUrl, model, format },
+    };
     setSettings(next);
     await saveSettings(envConfig, next);
   },
