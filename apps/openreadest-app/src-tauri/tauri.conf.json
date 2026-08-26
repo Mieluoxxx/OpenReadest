@@ -50,9 +50,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": {
-      "resources/macos/Assets.car": "Assets.car"
-    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"

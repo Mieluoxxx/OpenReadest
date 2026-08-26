@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="new_logo/openreadest-icon.svg" alt="OpenReadest" width="160" />
+  <img src="assets/openreadest.png" alt="OpenReadest" width="160" />
 </p>
 
 # OpenReadest

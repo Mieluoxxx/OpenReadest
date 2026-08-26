@@ -1,5 +1,5 @@
 #!/bin/bash
-# 从 Icon Composer 源资产 (new_logo/OpenReadest.icon) 重新生成 macOS Assets.car。
+# 从 Icon Composer 源资产 (assets/OpenReadest.icon) 重新生成 macOS Assets.car。
 #
 # 使用与 Tauri 上游 Liquid Glass 图标支持 (tauri-apps/tauri commit 8254e5af)
 # 完全一致的 actool 参数，确保未来切换到官方支持时行为不变。
@@ -9,7 +9,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-ICON_SRC="$ROOT/new_logo/OpenReadest.icon"
+ICON_SRC="$ROOT/assets/OpenReadest.icon"
 OUT_DIR="$ROOT/apps/openreadest-app/src-tauri/resources/macos"
 TMP_OUT="$(mktemp -d)"
 trap 'rm -rf "$TMP_OUT"' EXIT

@@ -7,14 +7,14 @@ usage() {
 Generate three black-and-white OpenReadest logo concepts.
 
 Usage:
-  OPENAI_API_KEY='...' bash new_logo/generate-logo-concepts.sh
+  OPENAI_API_KEY='...' bash assets/generate-logo-concepts.sh
 
 Optional environment variables:
   OPENAI_BASE_URL  API root (default: https://api.mayoru.com)
   IMAGE_MODEL      Image model (default: gpt-image-2)
   IMAGE_SIZE       Output size (default: 1024x1024)
   IMAGE_QUALITY    Image quality (default: medium)
-  OUTPUT_DIR       Output directory (default: new_logo/concepts-<timestamp>)
+  OUTPUT_DIR       Output directory (default: assets/concepts-<timestamp>)
 USAGE
 }
 
