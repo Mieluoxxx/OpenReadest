@@ -181,7 +181,7 @@ const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
               )}
               onClick={resetZoom}
             >
-              {zoomLevel}%
+              {Number(zoomLevel.toFixed(1))}%
             </button>
             <button
               title={_('Zoom In')}
